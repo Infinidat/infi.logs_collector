@@ -161,6 +161,13 @@ class LogCollectorTestCase(unittest.TestCase):
         self.assertTrue(archive_path.endswith(".tar.gz"))
         archive = TarFile.open(archive_path, "r:gz")
 
+    def _create_old_file(self, dst_dir):
+        from os import path, utime
+        from time import time
+        fname = path.join(dst_dir, "infi_logs_collector_test_old.log")
+        open(fname, "wb").write("test")
+        utime(fname, (time(), 0))
+
     def test_collect_directory_with_timeframe(self):
         from os import path, name
         from glob import glob
@@ -171,6 +178,7 @@ class LogCollectorTestCase(unittest.TestCase):
         src = get_logs_directory()
         dst = mkdtemp()
         open(path.join(src, "infi_logs_collector_test.log"), "wb").write("test")
+        self._create_old_file(src)
         item = collectables.Directory(src, "infi.*log$", timeframe_only=True)
         with patch("multiprocessing.Process", new=FakeProcess) as Process:
             item.collect(dst, datetime.now(), timedelta(seconds=5))
@@ -194,11 +202,11 @@ class LogCollectorTestCase(unittest.TestCase):
         with patch("multiprocessing.Process", new=FakeProcess) as Process:
             item.collect(dst, datetime.now(), timedelta(seconds=2))
         self.addCleanup(rmtree, dst, ignore_errors=True)
-        src_logs = glob(path.join(src, 'infi*-*.log'))
+        src_logs = glob(path.join(src, 'infi*.log'))
         dst = path.join(dst, src.strip('/').replace('C:', ''))
-        dst_logs = glob(path.join(dst, 'infi*-*.log'))
+        dst_logs = glob(path.join(dst, 'infi*.log'))
         self.assertEquals(len(dst_logs), len(src_logs))
-        self.assertLess(0, len(dst_logs))
+        self.assertGreater(len(dst_logs), 0)
 
     def test_collect_and_store_output_in_a_different_location__directory(self):
         from infi.logs_collector.items import get_generic_os_items
