@@ -1,0 +1,228 @@
+from unittest import SkipTest
+from infi import unittest
+from infi.logs_collector.util import get_logs_directory
+from infi import logs_collector
+from infi.logs_collector import collectables, scripts
+from os import path, stat, close, write, listdir
+from tempfile import mkstemp, mkdtemp
+from mock import patch
+from tarfile import TarFile
+
+def fake_st_size_side_effect(*args, **kwargs):
+    from os import name
+    if name == 'nt':
+        from nt import stat_result
+    else:
+        from posix import stat_result
+    stats = stat(args[0])
+    return stat_result((stats.st_mode, stats.st_ino, stats.st_dev, stats.st_nlink,
+                        stats.st_uid, stats.st_gid, stats.st_size + 10,
+                        stats.st_atime, stats.st_mtime, stats.st_ctime))
+
+class FakeProcess(object):
+    def __init__(self, target, args, kwargs):
+        super(FakeProcess, self).__init__()
+        self.target = target
+        self.args = args
+        self.kwargs = kwargs
+        self.exitcode = 0
+
+    def start(self):
+        self.target(*self.args, **self.kwargs)
+
+    def join(self, timeout=None):
+        pass
+
+    def is_alive(self):
+        return False
+
+class TimestampParserTestCase(unittest.TestCase):
+    def test_fixed_date_without_time(self):
+        from datetime import date
+        actual = scripts.parse_datestring("1/1/2000").date()
+        expected = date(year=2000, month=1, day=2)
+        self.assertEquals(actual, expected)
+
+    def test_fixed_date_with_time__seconds_included(self):
+        from datetime import datetime
+        actual = scripts.parse_datestring("1/1/2000 01:00:00")
+        expected = datetime(year=2000, month=1, day=1, hour=1, minute=0, second=0)
+        self.assertEquals(actual, expected)
+
+    def test_fixed_date_with_time__seconds_not_included(self):
+        from datetime import datetime
+        actual = scripts.parse_datestring("1/1/2000 01:00")
+        expected = datetime(year=2000, month=1, day=1, hour=1, minute=1, second=0)
+        self.assertEquals(actual, expected)
+
+    def test_just_time(self):
+        from datetime import datetime
+        actual = scripts.parse_datestring("01:00:00")
+        now = datetime.now()
+        self.assertEquals(actual.year, now.year)
+        self.assertEquals(actual.month, now.month)
+        self.assertEquals(actual.day, now.day)
+
+    def test_invalid_date(self):
+        from argparse import ArgumentTypeError
+        with self.assertRaises(ArgumentTypeError):
+            scripts.parse_datestring("1900")
+
+class DeltaParserTestCase(unittest.TestCase):
+    def test_positive_delta(self):
+        from datetime import timedelta
+        actual = scripts.parse_deltastring("10")
+        expected = timedelta(seconds=10)
+        self.assertEquals(actual, expected)
+
+    def test_negative_delta(self):
+        from datetime import timedelta
+        actual = scripts.parse_deltastring("-10")
+        expected = timedelta(seconds=10)
+        self.assertEquals(actual, expected)
+
+    def test_invalid_delta(self):
+        from argparse import ArgumentTypeError
+        with self.assertRaises(ArgumentTypeError):
+            scripts.parse_deltastring("foo")
+
+    def test_get_default_timestamp(self):
+        _ = scripts.get_default_timestamp()
+
+class LogCollectorTestCase(unittest.TestCase):
+    def test_run__no_items_to_collect(self):
+        self._test_real([])
+
+    def test_run_demo__with_multiprocessing(self):
+        from infi.logs_collector.items import get_generic_os_items
+        self._test_real(get_generic_os_items())
+
+    def test_run_demo__with_multiprocessing__with_exception(self):
+        with patch("shutil.copy") as copy:
+            copy.side_effect = RuntimeError()
+            self.test_run_demo__with_multiprocessing()
+
+    def test_run_demo__without_multiprocessing(self):
+        with patch("multiprocessing.Process", new=FakeProcess) as Process:
+            self.test_run_demo__with_multiprocessing()
+
+    def test_run_demo__without_multiprocessing__with_exception(self):
+        with patch("multiprocessing.Process", new=FakeProcess) as Process:
+            with patch("shutil.copy") as copy:
+                copy.side_effect = RuntimeError()
+                self.test_run_demo__with_multiprocessing()
+
+    def test_run_hits_OSError(self):
+        with patch("os.path.islink") as islink:
+            islink.side_effect = OSError()
+            result, archive_path = logs_collector.run("test", [], None, None)
+
+    def test_run_collects_a_file_with_a_bad_st_size(self):
+        fd, src = mkstemp()
+        write(fd, '\x00' * 4)
+        close(fd)
+
+        workaround_issue_10760 = logs_collector.workaround_issue_10760
+        def workaround_issue_10760_wrapper(*args, **kwargs):
+            with patch("os.stat") as lstat:
+                lstat.side_effect = fake_st_size_side_effect
+                workaround_issue_10760(*args, **kwargs)
+
+        items = [collectables.File(src)]
+        with patch.object(logs_collector, "workaround_issue_10760", new=workaround_issue_10760_wrapper):
+            result, archive_path = logs_collector.run("test", items, None, None)
+
+    def test_command_timeout(self):
+        items = [collectables.Command("sleep", ["5"], wait_time_in_seconds=1)]
+        result, archive_path = logs_collector.run("test", items, None, None)
+
+    def test_diretory_collector_timeout(self):
+        def sleep(*args, **kwargs):
+            from time import sleep
+            sleep(5)
+        with patch("re.match", new=sleep):
+            items = [collectables.Directory("/tmp", "a", timeout_in_seconds=1)]
+            result, archive_path = logs_collector.run("test", items, None, None)
+
+    def test_windows_with_mocks(self):
+        from infi.logs_collector.items import windows
+        result, archive_path = logs_collector.run("test", windows(), None, None)
+        self.assertTrue(path.exists(archive_path))
+        self.assertTrue(archive_path.endswith(".tar.gz"))
+        archive = TarFile.open(archive_path, "r:gz")
+
+    def test_linux_with_mocks(self):
+        from infi.logs_collector.items import linux
+        self._test_real(linux())
+
+    def _test_real(self, items):
+        result, archive_path = logs_collector.run("test", items, None, None)
+        self.assertTrue(path.exists(archive_path))
+        self.assertTrue(archive_path.endswith(".tar.gz"))
+        archive = TarFile.open(archive_path, "r:gz")
+
+    def test_collect_directory_with_timeframe(self):
+        from os import path, name
+        from glob import glob
+        from shutil import rmtree
+        from datetime import timedelta, datetime
+        if name == "nt":
+            raise SkipTest("Windows")
+        src = get_logs_directory()
+        dst = mkdtemp()
+        open(path.join(src, "infi_logs_collector_test.log"), "wb").write("test")
+        item = collectables.Directory(src, "infi.*log$", timeframe_only=True)
+        with patch("multiprocessing.Process", new=FakeProcess) as Process:
+            item.collect(dst, datetime.now(), timedelta(seconds=5))
+        self.addCleanup(rmtree, dst, ignore_errors=True)
+        src_logs = glob(path.join(src, 'infi*.log'))
+        dst = path.join(dst, src.strip('/').replace('C:', ''))
+        dst_logs = glob(path.join(dst, 'infi*.log'))
+        self.assertLess(len(dst_logs), len(src_logs))
+        self.assertGreater(len(dst_logs), 0)
+
+    def test_collect_directory_without_timeframe(self):
+        from os import path, name
+        from glob import glob
+        from shutil import rmtree
+        from datetime import timedelta, datetime
+        if name == "nt":
+            raise SkipTest("Windows")
+        src = get_logs_directory()
+        item = collectables.Directory(src, "infi.*log$", timeframe_only=False)
+        dst = mkdtemp()
+        with patch("multiprocessing.Process", new=FakeProcess) as Process:
+            item.collect(dst, datetime.now(), timedelta(seconds=2))
+        self.addCleanup(rmtree, dst, ignore_errors=True)
+        src_logs = glob(path.join(src, 'infi*-*.log'))
+        dst = path.join(dst, src.strip('/').replace('C:', ''))
+        dst_logs = glob(path.join(dst, 'infi*-*.log'))
+        self.assertEquals(len(dst_logs), len(src_logs))
+        self.assertLess(0, len(dst_logs))
+
+    def test_collect_and_store_output_in_a_different_location__directory(self):
+        from infi.logs_collector.items import get_generic_os_items
+        dst = mkdtemp()
+        before = listdir(dst)
+        logs_collector.run("test", get_generic_os_items(), None, None, dst)
+        after = listdir(dst)
+        self.assertNotEquals(before, after)
+
+    def test_collect_and_store_output_in_a_different_location__filepath(self):
+        from infi.logs_collector.items import get_generic_os_items
+        dst = mkdtemp()
+        before = listdir(dst)
+        logs_collector.run("test", get_generic_os_items(), None, None, path.join(dst, 'foo'))
+        after = listdir(dst)
+        self.assertNotEquals(before, after)
+        self.assertEquals(after, ['foo'])
+
+    def test_collect_eventlog(self):
+        from datetime import datetime
+        dst = mkdtemp()
+        from infi.logs_collector.collectables.windows import Windows_Event_Logs
+        wev = Windows_Event_Logs()
+        with patch("multiprocessing.Process", new=FakeProcess) as Process:
+            wev.collect(dst, datetime.now(), datetime.now()-datetime(2009, 01, 01))
+        self.assertTrue(path.exists(path.join(dst, "event_logs", "Application.json")))
+        self.assertTrue(path.exists(path.join(dst, "event_logs", "System.json")))
