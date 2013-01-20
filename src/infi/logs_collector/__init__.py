@@ -33,14 +33,27 @@ def create_temporary_directory_for_log_collection(prefix):
     finally:
         rmtree(tempdir, onerror=onerror)
 
+
+def get_tar_path(prefix, optional_archive_path):
+    from os import close, remove, path
+    from tempfile import mkstemp
+    fd, archive_path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(prefix, get_timestamp()))
+    close(fd)
+    remove(archive_path)
+    
+    if optional_archive_path is None:
+        return archive_path
+
+    if path.isdir(optional_archive_path):
+        return path.join(optional_archive_path, path.basename(archive_path))
+    
+    return optional_archive_path
+    
+
 @contextmanager
 def log_collection_context(logging_memory_handler, tempdir, prefix, optional_archive_path=None):
-    from tempfile import mkstemp
-    from os import close, remove
     from logging import root, DEBUG
-    fd, path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(prefix, get_timestamp()))
-    close(fd)
-    remove(path)
+    path = get_tar_path(prefix, optional_archive_path)
     root.addHandler(logging_memory_handler)
     root.setLevel(DEBUG)
     try:
@@ -51,9 +64,6 @@ def log_collection_context(logging_memory_handler, tempdir, prefix, optional_arc
             logging_memory_handler.close()
             add_directory(archive, tempdir)
             print("Logs collected successfully to {!r}".format(path))
-            secondary_location = copy_archive_to_secondary_location(path, optional_archive_path)
-            if secondary_location:
-                print("Logs copied to {!r}".format(optional_archive_path))
 
 @contextmanager
 def open_archive(path):
@@ -106,22 +116,6 @@ def collect(item, tempdir, timestamp, delta):
         logger.exception("An error ocurred while collecting {!r}".format(item))
         print(Fore.MAGENTA + "error" + Fore.RESET)
         return False
-
-def copy_archive_to_secondary_location(src, dst):
-    from shutil import copy
-    from os import path
-    if dst is None:
-        logger.debug("No secondary location specified, skipping copy")
-        return None
-    try:
-        if path.isdir(dst):
-            dst = path.join(dst, path.basename(src))
-        logger.debug("Copied {!r} to {!r}".format(src, dst))
-        copy(src, dst)
-        return dst
-    except:
-        logger.exception("Failed to copy archive to secondary location")
-        return None
 
 @traceback_decorator
 def run(prefix, items, timestamp, delta, optional_archive_path=None):
