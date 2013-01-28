@@ -63,6 +63,8 @@ def back_from_the_future_decorator(func):
 def parse_datestring(datestring):
     from argparse import ArgumentTypeError
     from datetime import datetime
+    if datestring == "now":
+        datestring = get_default_timestamp()
     for format in DATE_FORMATS:
         try:
             return datetime.strptime(datestring, format)
