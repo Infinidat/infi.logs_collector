@@ -27,6 +27,23 @@ Here's a very short and simple example:
     since = timedelta(hours=1)
     end_result, archive_path = run("collection", os_items(), now, since)
 
+`os_items` is a default list of interesting objects to collect, according to the operating system (Windows or Linux). This includes, for example,
+the environemnt variables, the host name, the `/var/log` directory (for Linux) and the Event Log entries (for Windows).
+`logs_collector` allows defining the items to collect (directories, files, and commands) by passing a list of "collectables":
+
+    from infi.logs_collector.collectables import File, Directory, Command
+    items = [ Command("sg_map", ["-x"]),
+              Directory("/proc", "scsi", recursive=True),
+              File('/etc/bashrc')]
+    ...
+    run("collection", items, now, since)
+
+In order to use user-supplied strings to specify the time and delta passed to `run` (`now` and `since` in the examples), the following helper
+functions are defined for string conversions:
+
+    from infi.logs_collector.scripts import parse_datestring, parse_deltastring
+    timestamp = parse_datestring(timestamp_str)
+    delta = parse_deltastring(delta_str)
 
 Checking out the code
 =====================
