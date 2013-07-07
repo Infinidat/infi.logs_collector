@@ -186,11 +186,19 @@ def find_executable(executable_name):
     return existing_executables[0]
 
 class Command(Item):
-    def __init__(self, executable, commandline_arguments=[], wait_time_in_seconds=60):
+    def __init__(self, executable, commandline_arguments=[], wait_time_in_seconds=60, prefix=None):
+        """
+        Define a command to run and collect its output.
+        executable - name of the executable to run
+        commandline_arguments - list of arguments to pass to the command
+        wait_time_in_seconds - maximum time to wait for the command to finish
+        prefix - optional prefix for the name of the output files (default: the executable name)
+        """
         super(Command, self).__init__()
         self.executable = executable
         self.commandline_arguments = commandline_arguments
         self.wait_time_in_seconds = wait_time_in_seconds
+        self.prefix = prefix
 
     def __repr__(self):
         try:
@@ -228,13 +236,12 @@ class Command(Item):
 
     def _write_output(self, cmd, targetdir):
         from os.path import basename, join
-        from time import time
         from ..util import get_timestamp
         executable_name = basename(self.executable).split('.')[0]
         pid = cmd.get_pid()
         timestamp = get_timestamp()
-        output_format = "{executable_name}.{timestamp}.{pid}.{output_type}.txt"
-        kwargs = dict(executable_name=executable_name, pid=pid, timestamp=timestamp,
+        output_format = "{prefix}.{timestamp}.{pid}.{output_type}.txt"
+        kwargs = dict(prefix=self.prefix or executable_name, pid=pid, timestamp=timestamp,
                       cmdline=' '.join([executable_name] + self.commandline_arguments))
         for output_type in ['returncode', 'stdout', 'stderr']:
             kwargs.update(dict(output_type=output_type))

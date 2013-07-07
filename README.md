@@ -28,7 +28,7 @@ Here's a very short and simple example:
     end_result, archive_path = run("collection", os_items(), now, since)
 
 `os_items` is a default list of interesting objects to collect, according to the operating system (Windows or Linux). This includes, for example,
-the environemnt variables, the host name, the `/var/log` directory (for Linux) and the Event Log entries (for Windows).
+the environment variables, the host name, the `/var/log` directory (for Linux) and the Event Log entries (for Windows).
 `logs_collector` allows defining the items to collect (directories, files, and commands) by passing a list of "collectables":
 
     from infi.logs_collector.collectables import File, Directory, Command
