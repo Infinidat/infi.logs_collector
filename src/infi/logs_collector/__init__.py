@@ -2,7 +2,7 @@ from __future__ import print_function
 from logging import getLogger
 from infi.pyutils.contexts import contextmanager
 from infi.traceback import traceback_decorator
-from .util import LOGGING_FORMATTER_KWARGS, get_timestamp, get_platform_name
+from .util import LOGGING_FORMATTER_KWARGS, get_timestamp
 
 logger = getLogger(__name__)
 
@@ -88,10 +88,10 @@ def workaround_issue_10760(srcdir):
             expected = stat(filepath).st_size
             actual = 0
             with open(filepath, 'rb') as fd:
-                bytes_read = len(fd.read(512))
+                actual = bytes_read = len(fd.read(512))
                 while bytes_read == 512:
                     bytes_read = len(fd.read(512))
-                    actual =+ bytes_read
+                    actual += bytes_read
             if actual < expected:
                 with open(filepath, 'ab') as fd:
                     fd.write('\x00' * (expected-actual))

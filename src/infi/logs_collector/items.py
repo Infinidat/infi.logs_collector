@@ -1,9 +1,11 @@
+from .util import get_platform_name
+
 def get_generic_os_items():
     from .collectables import Hostname, Environment
     return [Environment(), Hostname()]
 
 def linux():
-    from .collectables import File, Directory, Command
+    from .collectables import Directory, Command
     return [ Command("uname", ["-a"]),
              Command("df"),
              Command("lspci"),
