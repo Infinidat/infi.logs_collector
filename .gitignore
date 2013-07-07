@@ -53,3 +53,4 @@ tmp*
 buildout.in
 
 src/infi/logs_collector/__version__.py
+bootstrap.py
