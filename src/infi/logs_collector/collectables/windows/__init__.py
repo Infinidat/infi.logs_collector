@@ -16,6 +16,7 @@ CMD_PATH = path.join(SYSTEMROOT, 'System32', 'cmd.exe')
 DISKPART_PATH = path.join(SYSTEMROOT, 'System32', 'diskpart.exe')
 REG_PATH = path.join(SYSTEMROOT, 'System32', 'reg.exe')
 MSINFO32_PATH = path.join(PROGRAM_FILES.replace(" (x86)", ""), 'Common files', 'Microsoft shared', 'MSinfo', 'msinfo32.exe')
+MSINFO32_PATH_2 = path.join(SYSTEMROOT, 'System32', 'msinfo32.exe')
 MSINFO32_REPORT_PATH = path.join(LOGS_DIR, "msinfo32.txt")
 MINIDUMP_PATH = path.join(SYSTEMROOT, 'Minidump')
 MEMORYDUMP_PATH = path.join(SYSTEMROOT, 'MEMORY.DMP')
@@ -83,7 +84,7 @@ class Windows_Event_Logs(Item):
         from logging import root
         from multiprocessing import Process
         from os import getpid
-        from .. import multiprocessing_logger
+        from .. import multiprocessing_logger, TimeoutError
         # We want to copy the files in a child process, so in case the filesystem is stuck, we won't get stuck too
         kwargs = dict(targetdir=targetdir, timestamp=timestamp, delta=delta)
         try:
@@ -109,10 +110,11 @@ class Windows_Event_Logs(Item):
             raise RuntimeError(subprocess.exitcode)
 
 def get_all():
+    msinfo_path = MSINFO32_PATH_2 if path.exists(MSINFO32_PATH_2) else MSINFO32_PATH
     return [
             Command("reg", ["query", r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\HotFix", "/s"]),
             Command("sc", ["query"]), Directory(WINDOWS_EVENTLOGS_PATH),
-            Command(MSINFO32_PATH, ["/report", path.join(MSINFO32_REPORT_PATH)]),
+            Command(msinfo_path, ["/report", path.join(MSINFO32_REPORT_PATH)]),
             File(MSINFO32_REPORT_PATH),
             Directory(MINIDUMP_PATH),
             Windows_Event_Logs(),
