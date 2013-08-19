@@ -102,7 +102,10 @@ def workaround_issue_10760(srcdir):
 
 def add_directory(archive, srcdir):
     from os.path import basename
-    workaround_issue_10760(srcdir)
+    try:
+        workaround_issue_10760(srcdir)
+    except OSError:
+        logger.exception("OSError")
     archive.add(srcdir, basename(srcdir))
 
 
