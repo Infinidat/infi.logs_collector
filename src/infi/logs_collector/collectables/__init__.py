@@ -240,14 +240,14 @@ class Command(Item):
         executable_name = basename(self.executable).split('.')[0]
         pid = cmd.get_pid()
         timestamp = get_timestamp()
-        output_format = "{prefix}.{timestamp}.{pid}.{output_type}.txt"
-        kwargs = dict(prefix=self.prefix or executable_name, pid=pid, timestamp=timestamp,
-                      cmdline=' '.join([executable_name] + self.commandline_arguments))
-        for output_type in ['returncode', 'stdout', 'stderr']:
-            kwargs.update(dict(output_type=output_type))
-            output_filename = output_format.format(**kwargs)
-            with open(join(targetdir, output_filename), 'w') as fd:
-                fd.write(str(getattr(cmd, "get_{}".format(output_type))()))
+        output_format = "{prefix}.{timestamp}.{pid}.txt"
+        kwargs = dict(prefix=self.prefix or executable_name, pid=pid, timestamp=timestamp)
+        output_filename = output_format.format(**kwargs)
+        with open(join(targetdir, output_filename), 'w') as fd:
+            fd.write("\n==={}===:\n{}".format("command", ' '.join([executable_name] + self.commandline_arguments)))
+            for output_type in ['returncode', 'stdout', 'stderr']:
+                output_value = getattr(cmd, "get_{}".format(output_type))()
+                fd.write("\n==={}===:\n{}".format(output_type, output_value))
 
     def collect(self, targetdir, timestamp, delta):
         cmd = self._execute()
