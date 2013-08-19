@@ -12,7 +12,7 @@ def create_logging_handler_for_collection(tempdir, prefix):
     from os import path
     from logging import FileHandler, DEBUG, Formatter
     from logging.handlers import MemoryHandler
-    target = FileHandler(path.join(tempdir, "{}.{}.debug.log".format(prefix, get_timestamp())))
+    target = FileHandler(path.join(tempdir, "collection-logs", "{}.{}.debug.log".format(prefix, get_timestamp())))
     target.setFormatter(Formatter(**LOGGING_FORMATTER_KWARGS))
     handler = MemoryHandler(maxsize, target=target)
     handler.setLevel(DEBUG)
@@ -25,7 +25,10 @@ def create_logging_handler_for_collection(tempdir, prefix):
 def create_temporary_directory_for_log_collection(prefix):
     from tempfile import mkdtemp
     from shutil import rmtree
+    from os import path, makedirs
     tempdir = mkdtemp(prefix="{}-logs".format(prefix))
+    for dirname in ["collected-commands", "collected-files", "collection-logs"]:
+        makedirs(path.join(tempdir, dirname))
     def onerror(function, path, exc_info):
         logger.debug("Failed to delete {!r}".format(path))
     try:
@@ -40,15 +43,15 @@ def get_tar_path(prefix, optional_archive_path):
     fd, archive_path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(prefix, get_timestamp()))
     close(fd)
     remove(archive_path)
-    
+
     if optional_archive_path is None:
         return archive_path
 
     if path.isdir(optional_archive_path):
         return path.join(optional_archive_path, path.basename(archive_path))
-    
+
     return optional_archive_path
-    
+
 
 @contextmanager
 def log_collection_context(logging_memory_handler, tempdir, prefix, optional_archive_path=None):

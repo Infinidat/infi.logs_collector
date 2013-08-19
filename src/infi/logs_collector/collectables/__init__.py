@@ -130,7 +130,7 @@ class Directory(Item):
         from os import getpid
         # We want to copy the files in a child process, so in case the filesystem is stuck, we won't get stuck too
         kwargs = dict(dirname=self.dirname, regex_basename=self.regex_basename,
-                      recursive=self.recursive, targetdir=targetdir,
+                      recursive=self.recursive, targetdir=path.join(targetdir, "collected-files"),
                       timeframe_only=self.timeframe_only, timestamp=timestamp, delta=delta)
         try:
             [logfile_path] = [handler.target.baseFilename for handler in root.handlers
@@ -251,7 +251,7 @@ class Command(Item):
 
     def collect(self, targetdir, timestamp, delta):
         cmd = self._execute()
-        self._write_output(cmd, targetdir)
+        self._write_output(cmd, path.join(targetdir, "collected-commands"))
 
 class Environment(Item):
     def collect(self, targetdir, timestamp, delta):
