@@ -130,7 +130,7 @@ class Directory(Item):
         from os import getpid
         # We want to copy the files in a child process, so in case the filesystem is stuck, we won't get stuck too
         kwargs = dict(dirname=self.dirname, regex_basename=self.regex_basename,
-                      recursive=self.recursive, targetdir=targetdir,
+                      recursive=self.recursive, targetdir=path.join(targetdir, "collected-files"),
                       timeframe_only=self.timeframe_only, timestamp=timestamp, delta=delta)
         try:
             [logfile_path] = [handler.target.baseFilename for handler in root.handlers
@@ -240,18 +240,18 @@ class Command(Item):
         executable_name = basename(self.executable).split('.')[0]
         pid = cmd.get_pid()
         timestamp = get_timestamp()
-        output_format = "{prefix}.{timestamp}.{pid}.{output_type}.txt"
-        kwargs = dict(prefix=self.prefix or executable_name, pid=pid, timestamp=timestamp,
-                      cmdline=' '.join([executable_name] + self.commandline_arguments))
-        for output_type in ['returncode', 'stdout', 'stderr']:
-            kwargs.update(dict(output_type=output_type))
-            output_filename = output_format.format(**kwargs)
-            with open(join(targetdir, output_filename), 'w') as fd:
-                fd.write(str(getattr(cmd, "get_{}".format(output_type))()))
+        output_format = "{prefix}.{timestamp}.{pid}.txt"
+        kwargs = dict(prefix=self.prefix or executable_name, pid=pid, timestamp=timestamp)
+        output_filename = output_format.format(**kwargs)
+        with open(join(targetdir, output_filename), 'w') as fd:
+            fd.write("\n==={}===:\n{}".format("command", ' '.join([executable_name] + self.commandline_arguments)))
+            for output_type in ['returncode', 'stdout', 'stderr']:
+                output_value = getattr(cmd, "get_{}".format(output_type))()
+                fd.write("\n==={}===:\n{}".format(output_type, output_value))
 
     def collect(self, targetdir, timestamp, delta):
         cmd = self._execute()
-        self._write_output(cmd, targetdir)
+        self._write_output(cmd, path.join(targetdir, "collected-commands"))
 
 class Environment(Item):
     def collect(self, targetdir, timestamp, delta):
