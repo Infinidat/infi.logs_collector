@@ -10,8 +10,8 @@ def get_logs_directory():
     else:
         return os.path.join(os.path.sep, 'var', 'log')
 
-def get_timestamp():
-    return time.strftime("%Y-%m-%d.%H-%M")
+def get_timestamp(seconds=False):
+    return time.strftime("%Y-%m-%d.%H-%M-%S" if seconds else "%Y-%m-%d.%H-%M")
 
 def get_platform_name(): # pragma: no cover
     from platform import system
