@@ -6,6 +6,7 @@ from .util import LOGGING_FORMATTER_KWARGS, get_timestamp
 
 logger = getLogger(__name__)
 
+
 @contextmanager
 def create_logging_handler_for_collection(tempdir, prefix):
     from sys import maxsize
@@ -21,18 +22,22 @@ def create_logging_handler_for_collection(tempdir, prefix):
     finally:
         handler.close()
 
+
 @contextmanager
 def create_temporary_directory_for_log_collection(prefix):
     from tempfile import mkdtemp
     from shutil import rmtree
     from os import path, makedirs
-    tempdir = mkdtemp(prefix="{}-logs".format(prefix))
-    for dirname in ["collected-commands", "collected-files", "collection-logs"]:
-        makedirs(path.join(tempdir, dirname))
+    from socket import gethostname
+    tempdir = mkdtemp()
+    collect_dir = path.join(tempdir, "infinihost-logs")
+    specific_dir = path.join(collect_dir, gethostname(), get_timestamp(seconds=True))
+    for dirname in ["commands", "files", "collection-logs"]:
+        makedirs(path.join(specific_dir, dirname))
     def onerror(function, path, exc_info):
         logger.debug("Failed to delete {!r}".format(path))
     try:
-        yield tempdir
+        yield collect_dir, specific_dir
     finally:
         rmtree(tempdir, onerror=onerror)
 
@@ -68,6 +73,7 @@ def log_collection_context(logging_memory_handler, tempdir, prefix, optional_arc
             add_directory(archive, tempdir)
             print("Logs collected successfully to {!r}".format(path))
 
+
 @contextmanager
 def open_archive(path):
     from tarfile import TarFile
@@ -76,6 +82,7 @@ def open_archive(path):
         yield archive
     finally:
         archive.close()
+
 
 def workaround_issue_10760(srcdir):
     # WORKAROUND for http://bugs.python.org/issue10760
@@ -123,15 +130,16 @@ def collect(item, tempdir, timestamp, delta):
         print(Fore.MAGENTA + "error" + Fore.RESET)
         return False
 
+
 @traceback_decorator
 def run(prefix, items, timestamp, delta, optional_archive_path=None):
     end_result = True
-    with create_temporary_directory_for_log_collection(prefix) as tempdir:
-        with create_logging_handler_for_collection(tempdir, prefix) as handler:
+    with create_temporary_directory_for_log_collection(prefix) as (tempdir, runtime_dir):
+        with create_logging_handler_for_collection(runtime_dir, prefix) as handler:
             with log_collection_context(handler, tempdir, prefix, optional_archive_path) as archive_path:
                 logger.info("Starting log collection")
                 for item in items:
-                    result = collect(item, tempdir, timestamp, delta)
+                    result = collect(item, runtime_dir, timestamp, delta)
                     end_result = end_result and result
                 end_result = 0 if end_result else 1
                 return end_result, archive_path
