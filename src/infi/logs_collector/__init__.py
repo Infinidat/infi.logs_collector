@@ -24,12 +24,12 @@ def create_logging_handler_for_collection(tempdir, prefix):
 
 
 @contextmanager
-def create_temporary_directory_for_log_collection(prefix):
+def create_temporary_directory_for_log_collection(optional_tempfile_dir=None):
     from tempfile import mkdtemp
     from shutil import rmtree
     from os import path, makedirs
     from socket import gethostname
-    tempdir = mkdtemp()
+    tempdir = mkdtemp(dir=optional_tempfile_dir)
     collect_dir = path.join(tempdir, "infinihost-logs")
     specific_dir = path.join(collect_dir, gethostname(), get_timestamp(seconds=True))
     for dirname in ["commands", "files", "collection-logs"]:
@@ -42,10 +42,11 @@ def create_temporary_directory_for_log_collection(prefix):
         rmtree(tempdir, onerror=onerror)
 
 
-def get_tar_path(prefix, optional_archive_path):
+def get_tar_path(prefix, optional_archive_path, optional_tempfile_dir=None):
     from os import close, remove, path
     from tempfile import mkstemp
-    fd, archive_path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(prefix, get_timestamp()))
+    fd, archive_path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(prefix, get_timestamp()),
+                               dir=optional_tempfile_dir)
     close(fd)
     remove(archive_path)
 
@@ -59,9 +60,9 @@ def get_tar_path(prefix, optional_archive_path):
 
 
 @contextmanager
-def log_collection_context(logging_memory_handler, tempdir, prefix, optional_archive_path=None):
+def log_collection_context(logging_memory_handler, tempdir, prefix, optional_archive_path=None, optional_tempfile_dir=None):
     from logging import root, DEBUG
-    path = get_tar_path(prefix, optional_archive_path)
+    path = get_tar_path(prefix, optional_archive_path, optional_tempfile_dir)
     root.addHandler(logging_memory_handler)
     root.setLevel(DEBUG)
     try:
@@ -132,9 +133,9 @@ def collect(item, tempdir, timestamp, delta):
 
 
 @traceback_decorator
-def run(prefix, items, timestamp, delta, optional_archive_path=None):
+def run(prefix, items, timestamp, delta, optional_archive_path=None, optional_tempfile_dir=None):
     end_result = True
-    with create_temporary_directory_for_log_collection(prefix) as (tempdir, runtime_dir):
+    with create_temporary_directory_for_log_collection(optional_tempfile_dir) as (tempdir, runtime_dir):
         with create_logging_handler_for_collection(runtime_dir, prefix) as handler:
             with log_collection_context(handler, tempdir, prefix, optional_archive_path) as archive_path:
                 logger.info("Starting log collection")
