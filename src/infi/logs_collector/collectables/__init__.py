@@ -74,7 +74,7 @@ class Directory(Item):
             logger.debug("{!r} is not a file, skipping it".format(filepath))
             return False
         last_modified_time = datetime.fromtimestamp(stat(filepath).st_mtime)
-        return last_modified_time > timestamp-delta
+        return last_modified_time > (timestamp-delta) and last_modified_time < timestamp
 
     @classmethod
     def filter_old_files(cls, dirpath, filenames, timestamp, delta):
