@@ -74,15 +74,28 @@ class Directory(Item):
             logger.debug("{!r} is not a file, skipping it".format(filepath))
             return False
         last_modified_time = datetime.fromtimestamp(stat(filepath).st_mtime)
-        return last_modified_time > (timestamp-delta) and last_modified_time < timestamp
+        return last_modified_time >= (timestamp-delta) and last_modified_time <= (timestamp+delta)
 
     @classmethod
     def filter_old_files(cls, dirpath, filenames, timestamp, delta):
-        # TODO handling the case where files written after the timestamp may contain information about we need
-        # alternative #1 is to collect all the files written after the timestamp
-        # alternative #2 is to collect only collect the first file written after the timestamp from each base
-        # for example, from messages* collect all the files from the timeframe and the 1st one after it
-        return [filename for filename in filenames if cls.was_this_file_modified_recently(dirpath, filename, timestamp, delta)]
+        # how we handle the case where files written after the timestamp may contain information about we need?
+        #
+        # v0.0.8 just collected all the files written after the timestamp
+        #
+        # starting with v0.0.9, we're collecting all the files that were last modified during:
+        # (timestamp-deta) <= mtime <= (timestamp + delta)
+        # this is good enough because:
+        # when timestamp is _now_ and delta is not too small, files that are still being written (e.g syslog) wil be
+        # colected as well
+        # when timestamp is way back in the past and delta is big enough, it will catch the first file modified after
+        # the timestamp, which will include all the data written within the timeframe, and possible more; this will
+        # still capture files that were created after timestamp, but less than how much v0.0.8 captured, depending
+        # on the size of the delta, ofcourse
+        #
+        # there are other, more accurate alternatives, but they base on knowledge of the collected file name and format
+        # for example, if the namesare syslog{,.1,.2}, or we know that each line in the file starts with strptime
+        return [filename for filename in
+                filenames if cls.was_this_file_modified_recently(dirpath, filename, timestamp, delta)]
 
     @classmethod
     def collect_logfile(cls, src_directory, filename, dst_directory):
