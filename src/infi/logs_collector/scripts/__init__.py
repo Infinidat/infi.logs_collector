@@ -10,6 +10,10 @@ DATE_FORMATS = [
                 "%m/%d/%y %H:%M", "%m/%d/%Y %H:%M", "%m-%d-%y %H:%M", "%m-%d-%Y %H:%M",
                 "%H:%M:%S", "%H:%M"]
 
+DELTA_KEYWORD_ARGUMENTS = dict(w="weeks", d="days", h="hours", m="minutes", s="seconds")
+DELTA_KEYWORD_ARGUMENTS.update({key.upper():value for key, value in DELTA_KEYWORD_ARGUMENTS.iteritems()})
+
+
 def fill_in_missing_date(datetime_object):
     from datetime import date, datetime
     if datetime_object.date() == date(1900, 1, 1):
@@ -76,7 +80,9 @@ def parse_deltastring(string):
     from datetime import timedelta
     from argparse import ArgumentTypeError
     try:
-        return timedelta(seconds=abs(int(string)))
+        keyword_argument = DELTA_KEYWORD_ARGUMENTS.get(string[-1] if string else "", "seconds")
+        stripped_string = string.strip(''.join(DELTA_KEYWORD_ARGUMENTS.keys()))
+        return timedelta(**{keyword_argument: abs(int(stripped_string))})
     except Exception, error:
         raise ArgumentTypeError(error)
 

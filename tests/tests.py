@@ -7,6 +7,7 @@ from os import path, stat, close, write, listdir
 from tempfile import mkstemp, mkdtemp
 from mock import patch
 from tarfile import TarFile
+from datetime import timedelta
 
 def fake_st_size_side_effect(*args, **kwargs):
     from os import name
@@ -69,16 +70,15 @@ class TimestampParserTestCase(unittest.TestCase):
             scripts.parse_datestring("1900")
 
 class DeltaParserTestCase(unittest.TestCase):
-    def test_positive_delta(self):
-        from datetime import timedelta
-        actual = scripts.parse_deltastring("10")
-        expected = timedelta(seconds=10)
-        self.assertEquals(actual, expected)
-
-    def test_negative_delta(self):
-        from datetime import timedelta
-        actual = scripts.parse_deltastring("-10")
-        expected = timedelta(seconds=10)
+    @unittest.parameters.iterate("case", [("10", timedelta(seconds=10)),
+                                          ("10s", timedelta(seconds=10)),
+                                          ("10m", timedelta(minutes=10)),
+                                          ("10h", timedelta(hours=10)),
+                                          ("10d", timedelta(days=10)),
+                                          ("10w", timedelta(weeks=10)),
+                                          ("-10", timedelta(seconds=10))])
+    def test_parse_deltastring(self, case):
+        actual, expected = scripts.parse_deltastring(case[0]), case[1]
         self.assertEquals(actual, expected)
 
     def test_invalid_delta(self):
