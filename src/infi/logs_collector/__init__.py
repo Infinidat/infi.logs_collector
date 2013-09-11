@@ -24,13 +24,13 @@ def create_logging_handler_for_collection(tempdir, prefix):
 
 
 @contextmanager
-def create_temporary_directory_for_log_collection(optional_tempfile_dir=None):
+def create_temporary_directory_for_log_collection(creation_dir, parent_dir_name):
     from tempfile import mkdtemp
     from shutil import rmtree
     from os import path, makedirs
     from socket import gethostname
-    tempdir = mkdtemp(dir=optional_tempfile_dir)
-    collect_dir = path.join(tempdir, "infinihost-logs")
+    tempdir = mkdtemp(dir=creation_dir)
+    collect_dir = path.join(tempdir, parent_dir_name)
     specific_dir = path.join(collect_dir, gethostname(), get_timestamp(seconds=True))
     for dirname in ["commands", "files", "collection-logs"]:
         makedirs(path.join(specific_dir, dirname))
@@ -42,27 +42,27 @@ def create_temporary_directory_for_log_collection(optional_tempfile_dir=None):
         rmtree(tempdir, onerror=onerror)
 
 
-def get_tar_path(prefix, optional_archive_path, optional_tempfile_dir=None):
+def get_tar_path(prefix, output_path, creation_dir=None):
     from os import close, remove, path
     from tempfile import mkstemp
     fd, archive_path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(prefix, get_timestamp()),
-                               dir=optional_tempfile_dir)
+                               dir=creation_dir)
     close(fd)
     remove(archive_path)
 
-    if optional_archive_path is None:
+    if output_path is None:
         return archive_path
 
-    if path.isdir(optional_archive_path):
-        return path.join(optional_archive_path, path.basename(archive_path))
+    if path.isdir(output_path):
+        return path.join(output_path, path.basename(archive_path))
 
-    return optional_archive_path
+    return output_path
 
 
 @contextmanager
-def log_collection_context(logging_memory_handler, tempdir, prefix, optional_archive_path=None, optional_tempfile_dir=None):
+def log_collection_context(logging_memory_handler, tempdir, prefix, output_path=None, creation_dir=None):
     from logging import root, DEBUG
-    path = get_tar_path(prefix, optional_archive_path, optional_tempfile_dir)
+    path = get_tar_path(prefix, output_path, creation_dir)
     root.addHandler(logging_memory_handler)
     root.setLevel(DEBUG)
     try:
@@ -133,11 +133,24 @@ def collect(item, tempdir, timestamp, delta):
 
 
 @traceback_decorator
-def run(prefix, items, timestamp, delta, optional_archive_path=None, optional_tempfile_dir=None):
+def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, parent_dir_name="logs"):
+    """ collects log items and creates an archive with all collected items.
+    items is a list of instances of 'Item' subclasses (see the collectables submodule).
+    timestamp and delta indicate the timeframe of logs that need to be collected.
+    The timeframe starts at (timestamp - delta) and ends at (timestamp).
+    creation_dir is a path to a directory where the logs will be collected in. The function will create a temporary
+    directory and then remove it when done. It will also be used for the final archive path, unless specified
+    otherwise by output_path.
+    This parameter is optional and will default to the system temporary directory, as decided by the tempfile module.
+    output_path indicates the path where the final archive will be created. This may be a directory path or a full
+    filename path.
+    By default, the system uses the creation_dir for the directory, and generates an archive name using 'prefix'
+    and the current time.
+    parent_dir_name is the name of the parent directory that will be created inside the output archive. """
     end_result = True
-    with create_temporary_directory_for_log_collection(optional_tempfile_dir) as (tempdir, runtime_dir):
+    with create_temporary_directory_for_log_collection(creation_dir, parent_dir_name) as (tempdir, runtime_dir):
         with create_logging_handler_for_collection(runtime_dir, prefix) as handler:
-            with log_collection_context(handler, tempdir, prefix, optional_archive_path) as archive_path:
+            with log_collection_context(handler, tempdir, prefix, output_path, creation_dir) as archive_path:
                 logger.info("Starting log collection")
                 for item in items:
                     result = collect(item, runtime_dir, timestamp, delta)
