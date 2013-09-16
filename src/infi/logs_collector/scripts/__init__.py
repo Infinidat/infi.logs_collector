@@ -6,6 +6,7 @@ DATE_FORMATS = [
                 "%m/%d/%y", "%m/%d/%Y", "%m-%d-%y", "%m-%d-%Y",
                 "%d/%m/%y %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%d-%m-%y %H:%M:%S", "%d-%m-%Y %H:%M:%S",
                 "%m/%d/%y %H:%M:%S", "%m/%d/%Y %H:%M:%S", "%m-%d-%y %H:%M:%S", "%m-%d-%Y %H:%M:%S",
+                "%d/%m/%y-%H-%M-%S", "%m/%d/%y-%H-%M-%S",
                 "%d/%m/%y %H:%M", "%d/%m/%Y %H:%M", "%d-%m-%y %H:%M", "%d-%m-%Y %H:%M",
                 "%m/%d/%y %H:%M", "%m/%d/%Y %H:%M", "%m-%d-%y %H:%M", "%m-%d-%Y %H:%M",
                 "%H:%M:%S", "%H:%M"]
