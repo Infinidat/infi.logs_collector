@@ -100,12 +100,12 @@ class Directory(Item):
     @classmethod
     def collect_logfile(cls, src_directory, filename, dst_directory):
         import logging
-        from shutil import copy
+        from shutil import copy2
         logger = logging.getLogger(__name__)
         src = path.join(src_directory, filename)
         dst = path.join(dst_directory, filename)
         try:
-            copy(src, dst)
+            copy2(src, dst)
         except:
             logger.exception("Failed to copy {!r}".format(src))
 

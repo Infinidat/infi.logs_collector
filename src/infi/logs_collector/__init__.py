@@ -151,7 +151,9 @@ def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, pa
     with create_temporary_directory_for_log_collection(creation_dir, parent_dir_name) as (tempdir, runtime_dir):
         with create_logging_handler_for_collection(runtime_dir, prefix) as handler:
             with log_collection_context(handler, tempdir, prefix, output_path, creation_dir) as archive_path:
-                logger.info("Starting log collection")
+                kwargs = dict(prefix=prefix, timestamp=timestamp, delta=delta, output_path=output_path,
+                              creation_dir=creation_dir, parent_dir_name=parent_dir_name)
+                logger.info("Starting log collection with kwargs {!r}".format(kwargs))
                 for item in items:
                     result = collect(item, runtime_dir, timestamp, delta)
                     end_result = end_result and result

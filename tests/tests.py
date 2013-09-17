@@ -98,7 +98,7 @@ class LogCollectorTestCase(unittest.TestCase):
         self._test_real(get_generic_os_items())
 
     def test_run_demo__with_multiprocessing__with_exception(self):
-        with patch("shutil.copy") as copy:
+        with patch("shutil.copy2") as copy:
             copy.side_effect = RuntimeError()
             self.test_run_demo__with_multiprocessing()
 
@@ -108,7 +108,7 @@ class LogCollectorTestCase(unittest.TestCase):
 
     def test_run_demo__without_multiprocessing__with_exception(self):
         with patch("multiprocessing.Process", new=FakeProcess) as Process:
-            with patch("shutil.copy") as copy:
+            with patch("shutil.copy2") as copy:
                 copy.side_effect = RuntimeError()
                 self.test_run_demo__with_multiprocessing()
 
