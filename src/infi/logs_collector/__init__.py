@@ -119,8 +119,10 @@ def add_directory(archive, srcdir):
 
 def collect(item, tempdir, timestamp, delta):
     from colorama import Fore
+    from sys import stdout
     logger.info("Collecting {!r}".format(item))
     print("Collecting {} ... ".format(item), end='')
+    stdout.flush()
     try:
         item.collect(tempdir, timestamp, delta)
         logger.info("Collected  {!r} successfully".format(item))
