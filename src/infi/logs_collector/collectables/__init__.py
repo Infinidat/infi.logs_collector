@@ -151,7 +151,7 @@ class Directory(Item):
         except ValueError:
             logfile_path = None
         subprocess = Process(target=multiprocessing_logger, args=(logfile_path, getpid(),
-                                                                  Directory.collect_process), kwargs=kwargs)
+                                                                  self.__class__.collect_process), kwargs=kwargs)
         subprocess.start()
         subprocess.join(self.timeout_in_seconds)
         if subprocess.is_alive():
