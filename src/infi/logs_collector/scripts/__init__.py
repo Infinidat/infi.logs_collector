@@ -10,7 +10,7 @@ DATE_FORMATS = [
                 "%d/%m/%y %H:%M", "%d/%m/%Y %H:%M", "%d-%m-%y %H:%M", "%d-%m-%Y %H:%M",
                 "%m/%d/%y %H:%M", "%m/%d/%Y %H:%M", "%m-%d-%y %H:%M", "%m-%d-%Y %H:%M",
                 "%H:%M:%S", "%H:%M",
-                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", ]
+                "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M"]
 
 DELTA_KEYWORD_ARGUMENTS = dict(w="weeks", d="days", h="hours", m="minutes", s="seconds")
 DELTA_KEYWORD_ARGUMENTS.update({key.upper():value for key, value in DELTA_KEYWORD_ARGUMENTS.iteritems()})
