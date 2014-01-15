@@ -122,7 +122,10 @@ def collect(item, tempdir, timestamp, delta):
     from sys import stdout
     logger.info("Collecting {!r}".format(item))
     print("Collecting {} ... ".format(item), end='')
-    stdout.flush()
+    try:
+        stdout.flush()
+    except:
+        pass # ignore "IOError: [Errno 9] Bad file descriptor" when running through the GUI on Windows
     try:
         item.collect(tempdir, timestamp, delta)
         logger.info("Collected  {!r} successfully".format(item))

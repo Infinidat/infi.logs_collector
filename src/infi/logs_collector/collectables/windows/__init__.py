@@ -114,7 +114,7 @@ def get_all():
     return [
             Command("reg", ["query", r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\HotFix", "/s"]),
             Command("sc", ["query"]), Directory(WINDOWS_EVENTLOGS_PATH),
-            Command(msinfo_path, ["/report", path.join(MSINFO32_REPORT_PATH)], wait_time_in_seconds=120),
+            Command(msinfo_path, ["/report", path.join(MSINFO32_REPORT_PATH)], wait_time_in_seconds=300),
             File(MSINFO32_REPORT_PATH),
             Directory(MINIDUMP_PATH),
             Windows_Event_Logs(),
