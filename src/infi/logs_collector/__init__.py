@@ -117,11 +117,12 @@ def add_directory(archive, srcdir):
     archive.add(srcdir, basename(srcdir))
 
 
-def collect(item, tempdir, timestamp, delta):
+def collect(item, tempdir, timestamp, delta, silent):
     from colorama import Fore
     from sys import stdout
     logger.info("Collecting {!r}".format(item))
-    print("Collecting {} ... ".format(item), end='')
+    if not silent:
+        print("Collecting {} ... ".format(item), end='')
     try:
         stdout.flush()
     except:
@@ -129,16 +130,18 @@ def collect(item, tempdir, timestamp, delta):
     try:
         item.collect(tempdir, timestamp, delta)
         logger.info("Collected  {!r} successfully".format(item))
-        print(Fore.GREEN + "ok" + Fore.RESET)
+        if not silent:
+            print(Fore.GREEN + "ok" + Fore.RESET)
         return True
     except:
         logger.exception("An error ocurred while collecting {!r}".format(item))
-        print(Fore.MAGENTA + "error" + Fore.RESET)
+        if not silent:
+            print(Fore.MAGENTA + "error" + Fore.RESET)
         return False
 
 
 @traceback_decorator
-def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, parent_dir_name="logs"):
+def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, parent_dir_name="logs", silent=False):
     """ collects log items and creates an archive with all collected items.
     items is a list of instances of 'Item' subclasses (see the collectables submodule).
     timestamp and delta indicate the timeframe of logs that need to be collected.
@@ -151,7 +154,9 @@ def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, pa
     filename path.
     By default, the system uses the creation_dir for the directory, and generates an archive name using 'prefix'
     and the current time.
-    parent_dir_name is the name of the parent directory that will be created inside the output archive. """
+    parent_dir_name is the name of the parent directory that will be created inside the output archive.
+    silent specified whether or not to print the process to stdout. pass True to silence the prints. The process
+    will still be logged to a file under 'collection-logs' in the creation directory. """
     end_result = True
     with create_temporary_directory_for_log_collection(creation_dir, parent_dir_name) as (tempdir, runtime_dir):
         with create_logging_handler_for_collection(runtime_dir, prefix) as handler:
