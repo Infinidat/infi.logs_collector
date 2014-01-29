@@ -165,7 +165,7 @@ def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, pa
                               creation_dir=creation_dir, parent_dir_name=parent_dir_name)
                 logger.info("Starting log collection with kwargs {!r}".format(kwargs))
                 for item in items:
-                    result = collect(item, runtime_dir, timestamp, delta)
+                    result = collect(item, runtime_dir, timestamp, delta, silent)
                     end_result = end_result and result
                 end_result = 0 if end_result else 1
                 return end_result, archive_path
