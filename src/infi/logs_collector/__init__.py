@@ -72,7 +72,7 @@ def log_collection_context(logging_memory_handler, tempdir, prefix, output_path=
             logging_memory_handler.flush()
             logging_memory_handler.close()
             add_directory(archive, tempdir)
-            print("Logs collected successfully to {!r}".format(path))
+            print("Logs collected successfully to {}".format(path))
 
 
 @contextmanager
