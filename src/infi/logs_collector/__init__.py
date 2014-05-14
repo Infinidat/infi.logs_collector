@@ -117,9 +117,12 @@ def add_directory(archive, srcdir):
     archive.add(srcdir, basename(srcdir))
 
 
-def collect(item, tempdir, timestamp, delta, silent):
+def collect(item, tempdir, timestamp, delta, silent, interactive=False):
     from colorama import Fore
     from sys import stdout
+    if interactive:
+        if not raw_input('Do you want to collect {} [y/N]? '.format(item)).lower() in ('y', 'yes'):
+            return
     logger.info("Collecting {!r}".format(item))
     if not silent:
         print("Collecting {} ... ".format(item), end='')
@@ -141,7 +144,7 @@ def collect(item, tempdir, timestamp, delta, silent):
 
 
 @traceback_decorator
-def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, parent_dir_name="logs", silent=False):
+def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, parent_dir_name="logs", silent=False, interactive=False):
     """ collects log items and creates an archive with all collected items.
     items is a list of instances of 'Item' subclasses (see the collectables submodule).
     timestamp and delta indicate the timeframe of logs that need to be collected.
@@ -165,7 +168,7 @@ def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, pa
                               creation_dir=creation_dir, parent_dir_name=parent_dir_name)
                 logger.info("Starting log collection with kwargs {!r}".format(kwargs))
                 for item in items:
-                    result = collect(item, runtime_dir, timestamp, delta, silent)
+                    result = collect(item, runtime_dir, timestamp, delta, silent, interactive)
                     end_result = end_result and result
                 end_result = 0 if end_result else 1
                 return end_result, archive_path
