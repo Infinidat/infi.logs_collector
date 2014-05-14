@@ -2,7 +2,7 @@ from unittest import SkipTest
 from infi import unittest
 from infi.logs_collector.util import get_logs_directory
 from infi import logs_collector
-from infi.logs_collector import collectables, scripts
+from infi.logs_collector import collectables, scripts, user_wants_to_collect
 from os import path, stat, close, write, listdir
 from tempfile import mkstemp, mkdtemp
 from mock import patch
@@ -234,3 +234,15 @@ class LogCollectorTestCase(unittest.TestCase):
             wev.collect(dst, datetime.now(), datetime.now()-datetime(2009, 01, 01))
         self.assertTrue(path.exists(path.join(dst, "event_logs", "Application.json")))
         self.assertTrue(path.exists(path.join(dst, "event_logs", "System.json")))
+
+    @unittest.parameters.iterate("result", ['y', 'Y', 'yes'])
+    def test_interactive__user_wants_to_collect(self, result):
+        with patch("__builtin__.raw_input"):
+            raw_input.return_value = result
+            self.assertTrue(user_wants_to_collect(None))
+
+    @unittest.parameters.iterate("result", ['n', 'N', 'foo'])
+    def test_interactive__user_does_not_want_to_collect(self, result):
+        with patch("__builtin__.raw_input"):
+            raw_input.return_value = result
+            self.assertFalse(user_wants_to_collect(None))

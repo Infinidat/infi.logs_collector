@@ -117,12 +117,15 @@ def add_directory(archive, srcdir):
     archive.add(srcdir, basename(srcdir))
 
 
+def user_wants_to_collect(item):
+    return raw_input('Do you want to collect {} [y/N]? '.format(item)).lower() in ('y', 'yes')
+
+
 def collect(item, tempdir, timestamp, delta, silent, interactive=False):
     from colorama import Fore
     from sys import stdout
-    if interactive:
-        if not raw_input('Do you want to collect {} [y/N]? '.format(item)).lower() in ('y', 'yes'):
-            return
+    if interactive and not user_wants_to_collect(item):
+        return
     logger.info("Collecting {!r}".format(item))
     if not silent:
         print("Collecting {} ... ".format(item), end='')
