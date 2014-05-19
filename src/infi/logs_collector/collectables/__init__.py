@@ -199,19 +199,21 @@ def find_executable(executable_name):
     return existing_executables[0]
 
 class Command(Item):
-    def __init__(self, executable, commandline_arguments=[], wait_time_in_seconds=60, prefix=None):
+    def __init__(self, executable, commandline_arguments=[], wait_time_in_seconds=60, prefix=None, env=None):
         """
         Define a command to run and collect its output.
         executable - name of the executable to run
         commandline_arguments - list of arguments to pass to the command
         wait_time_in_seconds - maximum time to wait for the command to finish
         prefix - optional prefix for the name of the output files (default: the executable name)
+        env - a optional mapping of environment variables to run the command with
         """
         super(Command, self).__init__()
         self.executable = executable
         self.commandline_arguments = commandline_arguments
         self.wait_time_in_seconds = wait_time_in_seconds
         self.prefix = prefix
+        self.env = env
 
     def __repr__(self):
         try:
@@ -231,7 +233,7 @@ class Command(Item):
         from os import path
         executable = self.executable if path.exists(self.executable) else find_executable(self.executable)
         logger.info("Going to run {} {}".format(executable, self.commandline_arguments))
-        cmd = execute_async([executable] + self.commandline_arguments)
+        cmd = execute_async([executable] + self.commandline_arguments, env=self.env)
         try:
             cmd.wait(self.wait_time_in_seconds)
         except OSError, error:

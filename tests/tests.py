@@ -136,6 +136,12 @@ class LogCollectorTestCase(unittest.TestCase):
         items = [collectables.Command("sleep", ["5"], wait_time_in_seconds=1)]
         result, archive_path = logs_collector.run("test", items, None, None)
 
+    def test_command_env(self):
+        out1 = collectables.Command('env')._execute().get_stdout()
+        out2 = collectables.Command('env', env={'foo': 'bar'})._execute().get_stdout()
+        self.assertTrue('foo=bar' not in out1)
+        self.assertTrue('foo=bar' in out2)
+
     def test_diretory_collector_timeout(self):
         def sleep(*args, **kwargs):
             from time import sleep
