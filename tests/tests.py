@@ -7,7 +7,8 @@ from os import path, stat, close, write, listdir
 from tempfile import mkstemp, mkdtemp
 from mock import patch
 from tarfile import TarFile
-from datetime import timedelta
+from datetime import timedelta, datetime
+
 
 def fake_st_size_side_effect(*args, **kwargs):
     from os import name
@@ -57,7 +58,6 @@ class TimestampParserTestCase(unittest.TestCase):
         self.assertEquals(actual, expected)
 
     def test_just_time(self):
-        from datetime import datetime
         actual = scripts.parse_datestring("01:00:00")
         now = datetime.now()
         self.assertEquals(actual.year, now.year)
@@ -115,7 +115,7 @@ class LogCollectorTestCase(unittest.TestCase):
     def test_run_hits_OSError(self):
         with patch("os.path.islink") as islink:
             islink.side_effect = OSError()
-            result, archive_path = logs_collector.run("test", [], None, None)
+            result, archive_path = logs_collector.run("test", [], datetime.now(), None)
 
     def test_run_collects_a_file_with_a_bad_st_size(self):
         fd, src = mkstemp()
@@ -130,11 +130,11 @@ class LogCollectorTestCase(unittest.TestCase):
 
         items = [collectables.File(src)]
         with patch.object(logs_collector, "workaround_issue_10760", new=workaround_issue_10760_wrapper):
-            result, archive_path = logs_collector.run("test", items, None, None)
+            result, archive_path = logs_collector.run("test", items, datetime.now(), None)
 
     def test_command_timeout(self):
         items = [collectables.Command("sleep", ["5"], wait_time_in_seconds=1)]
-        result, archive_path = logs_collector.run("test", items, None, None)
+        result, archive_path = logs_collector.run("test", items, datetime.now(), None)
 
     def test_command_env(self):
         out1 = collectables.Command('env')._execute().get_stdout()
@@ -148,11 +148,11 @@ class LogCollectorTestCase(unittest.TestCase):
             sleep(5)
         with patch("re.match", new=sleep):
             items = [collectables.Directory("/tmp", "a", timeout_in_seconds=1)]
-            result, archive_path = logs_collector.run("test", items, None, None)
+            result, archive_path = logs_collector.run("test", items, datetime.now(), None)
 
     def test_windows_with_mocks(self):
         from infi.logs_collector.items import windows
-        result, archive_path = logs_collector.run("test", windows(), None, None)
+        result, archive_path = logs_collector.run("test", windows(), datetime.now(), None)
         self.assertTrue(path.exists(archive_path))
         self.assertTrue(archive_path.endswith(".tar.gz"))
         archive = TarFile.open(archive_path, "r:gz")
@@ -162,7 +162,7 @@ class LogCollectorTestCase(unittest.TestCase):
         self._test_real(linux())
 
     def _test_real(self, items):
-        result, archive_path = logs_collector.run("test", items, None, None)
+        result, archive_path = logs_collector.run("test", items, datetime.now(), None)
         self.assertTrue(path.exists(archive_path))
         self.assertTrue(archive_path.endswith(".tar.gz"))
         archive = TarFile.open(archive_path, "r:gz")
@@ -218,7 +218,7 @@ class LogCollectorTestCase(unittest.TestCase):
         from infi.logs_collector.items import get_generic_os_items
         dst = mkdtemp()
         before = listdir(dst)
-        logs_collector.run("test", get_generic_os_items(), None, None, dst)
+        logs_collector.run("test", get_generic_os_items(), datetime.now(), None, dst)
         after = listdir(dst)
         self.assertNotEquals(before, after)
 
@@ -226,7 +226,7 @@ class LogCollectorTestCase(unittest.TestCase):
         from infi.logs_collector.items import get_generic_os_items
         dst = mkdtemp()
         before = listdir(dst)
-        logs_collector.run("test", get_generic_os_items(), None, None, path.join(dst, 'foo'))
+        logs_collector.run("test", get_generic_os_items(), datetime.now(), None, path.join(dst, 'foo'))
         after = listdir(dst)
         self.assertNotEquals(before, after)
         self.assertEquals(after, ['foo'])

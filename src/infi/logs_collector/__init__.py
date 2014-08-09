@@ -2,7 +2,7 @@ from __future__ import print_function
 from logging import getLogger
 from infi.pyutils.contexts import contextmanager
 from infi.traceback import traceback_decorator
-from .util import LOGGING_FORMATTER_KWARGS, get_timestamp
+from .util import LOGGING_FORMATTER_KWARGS, STRFTIME_SHORT, get_timestamp
 
 logger = getLogger(__name__)
 
@@ -24,14 +24,14 @@ def create_logging_handler_for_collection(tempdir, prefix):
 
 
 @contextmanager
-def create_temporary_directory_for_log_collection(creation_dir, parent_dir_name):
+def create_temporary_directory_for_log_collection(creation_dir, parent_dir_name, timestamp):
     from tempfile import mkdtemp
     from shutil import rmtree
     from os import path, makedirs
     from socket import gethostname
     tempdir = mkdtemp(dir=creation_dir)
     collect_dir = path.join(tempdir, parent_dir_name)
-    specific_dir = path.join(collect_dir, gethostname(), get_timestamp(seconds=True))
+    specific_dir = path.join(collect_dir, gethostname(), timestamp.strftime(STRFTIME_SHORT))
     for dirname in ["commands", "files", "collection-logs"]:
         makedirs(path.join(specific_dir, dirname))
     def onerror(function, path, exc_info):
@@ -42,10 +42,10 @@ def create_temporary_directory_for_log_collection(creation_dir, parent_dir_name)
         rmtree(tempdir, onerror=onerror)
 
 
-def get_tar_path(prefix, output_path, creation_dir=None):
+def get_tar_path(prefix, output_path, timestamp, creation_dir=None):
     from os import close, remove, path
     from tempfile import mkstemp
-    fd, archive_path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(prefix, get_timestamp()),
+    fd, archive_path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(prefix, timestamp.strftime(STRFTIME_SHORT)),
                                dir=creation_dir)
     close(fd)
     remove(archive_path)
@@ -60,9 +60,9 @@ def get_tar_path(prefix, output_path, creation_dir=None):
 
 
 @contextmanager
-def log_collection_context(logging_memory_handler, tempdir, prefix, output_path=None, creation_dir=None):
+def log_collection_context(logging_memory_handler, tempdir, prefix, timestamp, output_path=None, creation_dir=None):
     from logging import root, DEBUG
-    path = get_tar_path(prefix, output_path, creation_dir)
+    path = get_tar_path(prefix, output_path, timestamp, creation_dir)
     root.addHandler(logging_memory_handler)
     root.setLevel(DEBUG)
     try:
@@ -164,9 +164,9 @@ def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, pa
     silent specified whether or not to print the process to stdout. pass True to silence the prints. The process
     will still be logged to a file under 'collection-logs' in the creation directory. """
     end_result = True
-    with create_temporary_directory_for_log_collection(creation_dir, parent_dir_name) as (tempdir, runtime_dir):
+    with create_temporary_directory_for_log_collection(creation_dir, parent_dir_name, timestamp) as (tempdir, runtime_dir):
         with create_logging_handler_for_collection(runtime_dir, prefix) as handler:
-            with log_collection_context(handler, tempdir, prefix, output_path, creation_dir) as archive_path:
+            with log_collection_context(handler, tempdir, prefix, timestamp, output_path, creation_dir) as archive_path:
                 kwargs = dict(prefix=prefix, timestamp=timestamp, delta=delta, output_path=output_path,
                               creation_dir=creation_dir, parent_dir_name=parent_dir_name)
                 logger.info("Starting log collection with kwargs {!r}".format(kwargs))
