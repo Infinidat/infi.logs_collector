@@ -73,7 +73,11 @@ class Directory(Item):
         if not path.isfile(filepath) or path.islink(filepath):
             logger.debug("{!r} is not a file, skipping it".format(filepath))
             return False
-        last_modified_time = datetime.fromtimestamp(stat(filepath).st_mtime)
+        try:
+            last_modified_time = datetime.fromtimestamp(stat(filepath).st_mtime)
+        except IOError, error:
+            logger.debug("stat on filepath {!r} failed: {}".format(filepath, error))
+            return False
         return last_modified_time >= (timestamp-delta) and last_modified_time <= (timestamp+delta)
 
     @classmethod
