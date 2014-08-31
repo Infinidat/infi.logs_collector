@@ -16,6 +16,7 @@ def linux():
              Command("ps", ["-ef"]),
              Directory("/etc/", "issue|.*release", timeframe_only=False),
              Directory("/var/log", "syslog.*|messages.*|boot.*"),
+             Directory("/var/crash"),
              ] + get_generic_os_items()
 
 def windows():
