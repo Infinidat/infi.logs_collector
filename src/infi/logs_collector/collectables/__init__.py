@@ -43,6 +43,7 @@ def multiprocessing_logger(logfile_path, parent_pid, func, *args, **kwargs):
             logging.root.handlers[0].close()
         exit(1)
 
+
 class Directory(Item):
     def __init__(self, dirname, regex_basename='.*', recursive=False, timeout_in_seconds=60, timeframe_only=True):
         super(Directory, self).__init__()
@@ -202,6 +203,7 @@ def find_executable(executable_name):
     logger.debug("Found the following executables: {}".format(existing_executables))
     return existing_executables[0]
 
+
 class Command(Item):
     def __init__(self, executable, commandline_arguments=[], wait_time_in_seconds=60, prefix=None, env=None):
         """
@@ -272,6 +274,49 @@ class Command(Item):
         cmd = self._execute()
         self._write_output(cmd, path.join(targetdir, "commands"))
 
+
+class Script(Item):
+
+    def __init__(self, script, wait_time_in_seconds=60, prefix=None, env=None):
+        """
+        Define a Python script to run and collect its output.
+        script - a string containing the script
+        wait_time_in_seconds - maximum time to wait for the script to finish
+        prefix - optional prefix for the name of the output files (default: 'script')
+        env - a optional mapping of environment variables to run the script with
+        """
+        super(Script, self).__init__()
+        self.script = script
+        self.wait_time_in_seconds = wait_time_in_seconds
+        self.prefix = prefix or 'script'
+        self.env = env
+
+    def __repr__(self):
+        return "<Script({})>".format(self.script)
+
+    def __str__(self):
+        return self.prefix
+
+    def _create_script_file(self):
+        from tempfile import mkstemp
+        import os, sys
+        fd, path = mkstemp(suffix='.py')
+        os.close(fd)
+        with open(path, 'wb') as f:
+            f.write('import sys\nsys.path[0:0] = [\n')
+            for entry in sys.path:
+                f.write('\t"%s"\n' % entry)
+            f.write(']\n\n')
+            f.write(self.script)
+        return path
+
+    def collect(self, targetdir, timestamp, delta):
+        from sys import executable
+        commandline_arguments = ['-S', self._create_script_file()]
+        cmd = Command(executable, commandline_arguments, self.wait_time_in_seconds, self.prefix, self.env)
+        cmd.collect(targetdir, timestamp, delta)
+
+
 class Environment(Item):
     def collect(self, targetdir, timestamp, delta):
         from os import path, environ
@@ -284,6 +329,7 @@ class Environment(Item):
 
     def __str__(self):
         return "environment variables"
+
 
 class Hostname(Item):
     def collect(self, targetdir, timestamp, delta):

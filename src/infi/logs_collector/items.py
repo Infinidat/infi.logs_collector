@@ -14,8 +14,9 @@ def linux():
              Command("ifconfig", ["-a"]),
              Command("ls", ["-laR", "/dev"]),
              Command("ps", ["-ef"]),
+             Command("find", ["/var/crash", "-type", "f"], prefix='list_of_crash_files'),
              Directory("/etc/", "issue|.*release", timeframe_only=False),
-             Directory("/var/log", "syslog.*|messages.*|boot.*"),
+             Directory("/var/log", "syslog.*|messages.*|boot.*")
              ] + get_generic_os_items()
 
 def windows():
