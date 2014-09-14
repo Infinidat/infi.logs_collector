@@ -7,7 +7,8 @@ def get_generic_os_items():
 def linux():
     from .collectables import Directory, Command
     return [ Command("uname", ["-a"]),
-             Command("df"),
+             Command("df", ["-h"]),
+             Command("mount"),
              Command("lspci"),
              Command("lsmod"),
              Command("dmidecode"),
