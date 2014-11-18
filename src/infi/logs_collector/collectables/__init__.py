@@ -13,6 +13,23 @@ class Item(object): # pragma: no cover
 class TimeoutError(Exception):
     pass
 
+class FakeResult(object):
+    @staticmethod
+    def get_pid():
+        return 0
+
+    @staticmethod
+    def get_returncode():
+        return 0
+
+    @staticmethod
+    def get_stdout():
+        return ''
+
+    @staticmethod
+    def get_stderr():
+        return
+
 def strip_os_prefix_from_path(path):
     import os
     return path.replace(os.environ.get("SYSTEMDRIVE", "C:"), '').lstrip(os.path.sep)
@@ -258,7 +275,11 @@ class Command(Item):
         from os import path
         executable = self.executable if path.exists(self.executable) else find_executable(self.executable)
         logger.info("Going to run {} {}".format(executable, self.commandline_arguments))
-        cmd = execute_async([executable] + self.commandline_arguments, env=self.env)
+        try:
+            cmd = execute_async([executable] + self.commandline_arguments, env=self.env)
+        except OSError:
+            logger.error("executable {} not found".format(executable))
+            return FakeResult
         try:
             cmd.wait(self.wait_time_in_seconds)
         except OSError, error:
