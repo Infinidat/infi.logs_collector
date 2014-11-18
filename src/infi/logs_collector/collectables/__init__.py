@@ -17,6 +17,13 @@ def strip_os_prefix_from_path(path):
     import os
     return path.replace(os.environ.get("SYSTEMDRIVE", "C:"), '').lstrip(os.path.sep)
 
+def reinit():
+    try:
+        from gevent import reinit as _reinit
+        _reinit()
+    except ImportError:
+        pass
+
 def multiprocessing_logger(logfile_path, parent_pid, func, *args, **kwargs):
     from sys import exit
 
@@ -34,6 +41,7 @@ def multiprocessing_logger(logfile_path, parent_pid, func, *args, **kwargs):
                             format=LOGGING_FORMATTER_KWARGS['fmt'], datefmt=LOGGING_FORMATTER_KWARGS['datefmt'])
 
     import logging
+    reinit()
     setup_logging()
     try:
         return func(*args, **kwargs)
@@ -142,9 +150,19 @@ class Directory(Item):
         from logging import FileHandler
         return isinstance(handler, MemoryHandler) and isinstance(handler.target, FileHandler)
 
+    def start_process(self, target, *args, **kwargs):
+        try:
+            from gipc.gipc import _GProcess as Process
+            from gipc.gipc import start_process as _start_process
+            return _start_process(target, args=args, kwargs=kwargs)
+        except ImportError:
+            from multiprocessing import Process
+            process = Process(target=target, args=args, kwargs=kwargs)
+            process.start()
+            return process
+
     def collect(self, targetdir, timestamp, delta):
         from logging import root
-        from multiprocessing import Process
         from os import getpid
         # We want to copy the files in a child process, so in case the filesystem is stuck, we won't get stuck too
         kwargs = dict(dirname=self.dirname, regex_basename=self.regex_basename,
@@ -155,14 +173,15 @@ class Directory(Item):
             if self._is_my_kind_of_logging_handler(handler)] or [None]
         except ValueError:
             logfile_path = None
-        subprocess = Process(target=multiprocessing_logger, args=(logfile_path, getpid(),
-                                                                  self.__class__.collect_process), kwargs=kwargs)
-        subprocess.start()
+        subprocess = self.start_process(multiprocessing_logger, logfile_path, getpid(), self.__class__.collect_process, **kwargs)
         subprocess.join(self.timeout_in_seconds)
         if subprocess.is_alive():
             msg = "Did not finish collecting {!r} within the {} seconds timeout_in_seconds"
             logger.error(msg.format(self, self.timeout_in_seconds))
-            subprocess.terminate()
+            try:
+                subprocess.terminate()
+            except OSError:
+                pass
             if subprocess.is_alive():
                 logger.info("Subprocess {!r} terminated".format(subprocess))
             else:
