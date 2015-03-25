@@ -345,7 +345,7 @@ class Script(Item):
         with open(path, 'wb') as f:
             f.write('import sys\nsys.path[0:0] = [\n')
             for entry in sys.path:
-                f.write('\t"%s",\n' % entry)
+                f.write('\t%r,\n' % entry)
             f.write(']\n\n')
             f.write(self.script)
         return path
