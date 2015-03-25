@@ -3,8 +3,9 @@ from infi import unittest
 from infi.logs_collector.util import get_logs_directory
 from infi import logs_collector
 from infi.logs_collector import collectables, scripts, user_wants_to_collect
-from os import path, stat, close, write, listdir
+from os import path, stat, close, write, listdir, makedirs
 from tempfile import mkstemp, mkdtemp
+from glob import glob
 from mock import patch
 from tarfile import TarFile
 from datetime import timedelta, datetime
@@ -252,3 +253,18 @@ class LogCollectorTestCase(unittest.TestCase):
         with patch("__builtin__.raw_input"):
             raw_input.return_value = result
             self.assertFalse(user_wants_to_collect(None))
+
+
+class RealCollectablesTestCase(unittest.TestCase):
+    def test_script(self):
+        tempdir = mkdtemp()
+        commands_dir = path.join(tempdir, 'commands')
+        makedirs(commands_dir)
+        script = collectables.Script("print 'hello world'")
+        script.collect(tempdir, 0, 0)
+        files = glob(path.join(commands_dir, '*'))
+        contents = ''
+        for filepath in files:
+            with open(filepath) as fd:
+                contents += fd.read()
+        self.assertIn('hello world', contents)
