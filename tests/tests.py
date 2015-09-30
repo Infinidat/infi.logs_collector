@@ -254,6 +254,12 @@ class LogCollectorTestCase(unittest.TestCase):
             raw_input.return_value = result
             self.assertFalse(user_wants_to_collect(None))
 
+    def test_logging_handlers(self):
+        import logging
+        before = list(logging.root.handlers)
+        result, archive_path = logs_collector.run("test", [], datetime.now(), None)
+        self.assertEquals(before, logging.root.handlers)
+
 
 class RealCollectablesTestCase(unittest.TestCase):
     def test_script(self):

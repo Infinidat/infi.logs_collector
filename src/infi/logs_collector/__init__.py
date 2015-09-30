@@ -21,7 +21,7 @@ def create_logging_handler_for_collection(tempdir, prefix):
         yield handler
     finally:
         handler.close()
-
+        target.close()
 
 @contextmanager
 def create_temporary_directory_for_log_collection(creation_dir, parent_dir_name, timestamp):
@@ -69,6 +69,7 @@ def log_collection_context(logging_memory_handler, tempdir, prefix, timestamp, o
         yield path
     finally:
         with open_archive(path) as archive:
+            root.removeHandler(logging_memory_handler)
             logging_memory_handler.flush()
             logging_memory_handler.close()
             add_directory(archive, tempdir)
