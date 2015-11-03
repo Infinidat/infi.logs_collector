@@ -14,6 +14,7 @@ def linux():
              Command("lsmod"),
              Command("dmesg"),
              Command("dmidecode"),
+             Command("free", ["-m"]),
              Command("ifconfig", ["-a"]),
              Command("ls", ["-laR", "/dev"]),
              Command("ps", ["-ef"]),
