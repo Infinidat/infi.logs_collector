@@ -22,7 +22,7 @@ MINIDUMP_PATH = path.join(SYSTEMROOT, 'Minidump')
 MEMORYDUMP_PATH = path.join(SYSTEMROOT, 'MEMORY.DMP')
 
 class Windows_Event_Logs(Item):
-    def __init__(self, timeout_in_seconds=60):
+    def __init__(self, timeout_in_seconds=120):
         super(Windows_Event_Logs, self).__init__()
         self.timeout_in_seconds = timeout_in_seconds
 
