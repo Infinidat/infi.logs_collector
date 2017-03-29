@@ -81,10 +81,10 @@ class Windows_Event_Logs(Item):
                 fd.write(json.dumps(events))
 
     def collect(self, targetdir, timestamp, delta):
+        from infi.blocking import make_blocking, can_use_gevent_rpc, Timeout
         from logging import root
         from multiprocessing import Process
         from os import getpid
-        from .. import multiprocessing_logger, TimeoutError
         # We want to copy the files in a child process, so in case the filesystem is stuck, we won't get stuck too
         kwargs = dict(targetdir=targetdir, timestamp=timestamp, delta=delta)
         try:
@@ -92,22 +92,14 @@ class Windows_Event_Logs(Item):
             if self._is_my_kind_of_logging_handler(handler)] or [None]
         except ValueError:
             logfile_path = None
-        subprocess = Process(target=multiprocessing_logger, args=(logfile_path, getpid(),
-                                                                  Windows_Event_Logs.collect_process), kwargs=kwargs)
-        subprocess.start()
-        subprocess.join(self.timeout_in_seconds)
-        if subprocess.is_alive():
+
+        func = make_blocking(self.collect_process, timeout=self.timeout_in_seconds, gevent_friendly=can_use_gevent_rpc())
+        try:
+            func(**kwargs)
+        except Timeout:
             msg = "Did not finish collecting {!r} within the {} seconds timeout_in_seconds"
             logger.error(msg.format(self, self.timeout_in_seconds))
-            subprocess.terminate()
-            if subprocess.is_alive():
-                logger.info("Subprocess {!r} terminated".format(subprocess))
-            else:
-                logger.error("Subprocess {!r} is stuck".format(subprocess))
             raise TimeoutError()
-        elif subprocess.exitcode:
-            logger.error("Subprocess {!r} returned non-zero exit code".format(subprocess))
-            raise RuntimeError(subprocess.exitcode)
 
 def get_all():
     msinfo_path = MSINFO32_PATH_2 if path.exists(MSINFO32_PATH_2) else MSINFO32_PATH

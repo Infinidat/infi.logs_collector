@@ -2,7 +2,7 @@ from infi.pyutils.decorators import wraps
 from logging import getLogger
 from datetime import datetime
 from re import match
-from os import path, stat, getpid
+from os import path, stat
 
 logger = getLogger(__name__)
 
@@ -40,33 +40,6 @@ def reinit():
         _reinit()
     except ImportError:
         pass
-
-def multiprocessing_logger(logfile_path, parent_pid, func, *args, **kwargs):
-    from sys import exit
-
-    def setup_logging():
-        import logging
-        import os
-        from .. import LOGGING_FORMATTER_KWARGS
-        if logfile_path is None or parent_pid == os.getpid():  # in unittests
-            return
-        logging.root = logging.RootLogger(logging.DEBUG)
-        logging.Logger.root = logging.root
-        logging.Logger.manager = logging.Manager(logging.Logger.root)
-        filename = logfile_path.replace(".debug.log", ".multiprocessing.debug.log")
-        logging.basicConfig(filename=filename, level=logging.DEBUG,
-                            format=LOGGING_FORMATTER_KWARGS['fmt'], datefmt=LOGGING_FORMATTER_KWARGS['datefmt'])
-
-    import logging
-    reinit()
-    setup_logging()
-    try:
-        return func(*args, **kwargs)
-    except:
-        logger.exception("Caught an unhandled exception in child process")
-        if logging.root.handlers:
-            logging.root.handlers[0].close()
-        exit(1)
 
 
 class Directory(Item):
@@ -167,20 +140,11 @@ class Directory(Item):
         from logging import FileHandler
         return isinstance(handler, MemoryHandler) and isinstance(handler.target, FileHandler)
 
-    def start_process(self, target, *args, **kwargs):
-        try:
-            from gipc.gipc import _GProcess as Process
-            from gipc.gipc import start_process as _start_process
-            return _start_process(target, args=args, kwargs=kwargs)
-        except ImportError:
-            from multiprocessing import Process
-            process = Process(target=target, args=args, kwargs=kwargs)
-            process.start()
-            return process
 
     def collect(self, targetdir, timestamp, delta):
         from logging import root
-        from os import getpid
+        from infi.blocking import make_blocking, can_use_gevent_rpc, Timeout
+
         # We want to copy the files in a child process, so in case the filesystem is stuck, we won't get stuck too
         kwargs = dict(dirname=self.dirname, regex_basename=self.regex_basename,
                       recursive=self.recursive, targetdir=path.join(targetdir, "files"),
@@ -190,23 +154,14 @@ class Directory(Item):
             if self._is_my_kind_of_logging_handler(handler)] or [None]
         except ValueError:
             logfile_path = None
-        subprocess = self.start_process(multiprocessing_logger, logfile_path, getpid(), self.__class__.collect_process, **kwargs)
-        subprocess.join(self.timeout_in_seconds)
-        if subprocess.is_alive():
+
+        func = make_blocking(self.collect_process, timeout=self.timeout_in_seconds, gevent_friendly=can_use_gevent_rpc())
+        try:
+            func(**kwargs)
+        except Timeout:
             msg = "Did not finish collecting {!r} within the {} seconds timeout_in_seconds"
             logger.error(msg.format(self, self.timeout_in_seconds))
-            try:
-                subprocess.terminate()
-            except OSError:
-                pass
-            if subprocess.is_alive():
-                logger.info("Subprocess {!r} terminated".format(subprocess))
-            else:
-                logger.error("Subprocess {!r} is stuck".format(subprocess))
             raise TimeoutError()
-        elif subprocess.exitcode:
-            logger.error("Subprocess {!r} returned non-zero exit code".format(subprocess))
-            raise RuntimeError(subprocess.exitcode)
 
 
 class File(Directory):
