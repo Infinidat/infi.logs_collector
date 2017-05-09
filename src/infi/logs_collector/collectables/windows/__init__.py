@@ -6,7 +6,7 @@ from ...util import get_logs_directory
 
 logger = getLogger(__name__)
 
-arch ='x64' if maxsize > 2**32 else 'x86'
+arch = 'x64' if maxsize > 2**32 else 'x86'
 
 LOGS_DIR = get_logs_directory()
 SYSTEMROOT = environ.get("SystemRoot", r"C:\Windows")
@@ -54,7 +54,7 @@ class Windows_Event_Logs(Item):
         import datetime
         now = datetime.datetime.now()
         low = int((now - timestamp).total_seconds())
-        high = int((now - (timestamp-delta)).total_seconds())
+        high = int((now - (timestamp - delta)).total_seconds())
         query = "*[System[TimeCreated[timediff(@SystemTime) <= {}] and TimeCreated[timediff(@SystemTime) >= {}]]]"
         query = query.format(high, low)
         return query
@@ -83,8 +83,7 @@ class Windows_Event_Logs(Item):
     def collect(self, targetdir, timestamp, delta):
         from infi.blocking import make_blocking, can_use_gevent_rpc, Timeout
         from logging import root
-        from multiprocessing import Process
-        from os import getpid
+        from infi.logs_collector.collectables import TimeoutError
         # We want to copy the files in a child process, so in case the filesystem is stuck, we won't get stuck too
         kwargs = dict(targetdir=targetdir, timestamp=timestamp, delta=delta)
         try:
@@ -105,7 +104,7 @@ def get_all():
     msinfo_path = MSINFO32_PATH_2 if path.exists(MSINFO32_PATH_2) else MSINFO32_PATH
     return [
             Command("reg", ["query", r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\HotFix", "/s"]),
-            Command("sc", ["query"]), Directory(WINDOWS_EVENTLOGS_PATH),
+            Command("sc", ["query"]), Directory(WINDOWS_EVENTLOGS_PATH, timeframe_only=False),
             Command(msinfo_path, ["/report", path.join(MSINFO32_REPORT_PATH)], wait_time_in_seconds=300),
             File(MSINFO32_REPORT_PATH),
             Directory(MINIDUMP_PATH),
