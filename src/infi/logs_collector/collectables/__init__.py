@@ -32,7 +32,9 @@ class FakeResult(object):
 
 def strip_os_prefix_from_path(path):
     import os
-    return path.replace(os.environ.get("SYSTEMDRIVE", "C:"), '').lstrip(os.path.sep)
+    path_normalized = os.path.normcase(path)
+    system_drive_letter = os.environ.get("SYSTEMDRIVE", "c:").lower()
+    return path_normalized.replace(system_drive_letter, '').lstrip(os.path.sep)
 
 def reinit():
     try:
