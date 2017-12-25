@@ -54,6 +54,9 @@ def get_tar_path(prefix, output_path, timestamp, creation_dir=None):
         # if output_path was not given, set it to the archive_path we just calculated:
         output_path = archive_path
 
+    # if a relative path is given an input:
+    output_path = os.path.abspath(output_path)
+
     if os.path.isdir(output_path):
         # if output_path was set to a dir, set the output file dirname to this directory, and the output file path to a
         # concatenation of this dir and the archive name:
