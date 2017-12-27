@@ -43,18 +43,35 @@ def create_temporary_directory_for_log_collection(creation_dir, parent_dir_name,
 
 
 def get_tar_path(prefix, output_path, timestamp, creation_dir=None):
-    from os import close, remove, path
+    import os
     from tempfile import mkstemp
-    fd, archive_path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(prefix, timestamp.strftime(STRFTIME_SHORT)),
-                               dir=creation_dir)
-    close(fd)
-    remove(archive_path)
+    fd, archive_path = mkstemp(suffix=".tar.gz", prefix="{}-logs.{}-".format(
+        prefix, timestamp.strftime(STRFTIME_SHORT)), dir=creation_dir)
+    os.close(fd)
+    os.remove(archive_path)
 
     if output_path is None:
-        return archive_path
+        # if output_path was not given, set it to the archive_path we just calculated:
+        output_path = archive_path
 
-    if path.isdir(output_path):
-        return path.join(output_path, path.basename(archive_path))
+    # if a relative path is given an input:
+    output_path = os.path.abspath(output_path)
+
+    if os.path.isdir(output_path):
+        # if output_path was set to a dir, set the output file dirname to this directory, and the output file path to a
+        # concatenation of this dir and the archive name:
+        dirname = output_path
+        output_path = os.path.join(output_path, os.path.basename(archive_path))
+    else:
+        # if output_path was set to a filename, set the output file dirname to the dir name of this path:
+        dirname = os.path.dirname(output_path)
+
+    if not os.path.isdir(dirname):
+        # if the dir the output file is supposed to be created in does not exist - abort:
+        raise ValueError("Output path does not exist: {0}".format(dirname))
+    if not os.access(dirname, os.W_OK):
+        # if the dir the output file is supposed to be created in does not have write permissions - abort:
+        raise ValueError("Output path has no write permissions: {0}".format(dirname))
 
     return output_path
 

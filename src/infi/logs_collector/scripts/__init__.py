@@ -1,9 +1,9 @@
 from infi.pyutils.decorators import wraps
-import argparse
 
 DATE_FORMATS = [
                 "%d/%m/%y", "%d/%m/%Y", "%d-%m-%y", "%d-%m-%Y",
                 "%m/%d/%y", "%m/%d/%Y", "%m-%d-%y", "%m-%d-%Y",
+                "%Y-%m-%d",
                 "%d/%m/%y %H:%M:%S", "%d/%m/%Y %H:%M:%S", "%d-%m-%y %H:%M:%S", "%d-%m-%Y %H:%M:%S",
                 "%m/%d/%y %H:%M:%S", "%m/%d/%Y %H:%M:%S", "%m-%d-%y %H:%M:%S", "%m-%d-%Y %H:%M:%S",
                 "%d/%m/%y-%H-%M-%S", "%m/%d/%y-%H-%M-%S",
