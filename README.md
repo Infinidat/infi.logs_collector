@@ -1,11 +1,11 @@
 Overview
 ========
-`infi.logs_collector` is a library for collecting diagnosic data into archives
+`infi.logs_collector` is a library for collecting diagnostic data into archives
 
 
 Why not just copy /var/log?
 --------------------------
-That's a good question. There are many reaons:
+That's a good question. There are many reasons:
 
 - If you're only interested in the last X-hours, collecting `everything` is a waste
 - Collecting files is not enough, we'd like to run some commands, maybe even some code
