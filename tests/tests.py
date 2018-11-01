@@ -44,26 +44,26 @@ class TimestampParserTestCase(unittest.TestCase):
         from datetime import date
         actual = scripts.parse_datestring("1/1/2000").date()
         expected = date(year=2000, month=1, day=2)
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
     def test_fixed_date_with_time__seconds_included(self):
         from datetime import datetime
         actual = scripts.parse_datestring("1/1/2000 01:00:00")
         expected = datetime(year=2000, month=1, day=1, hour=1, minute=0, second=0)
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
     def test_fixed_date_with_time__seconds_not_included(self):
         from datetime import datetime
         actual = scripts.parse_datestring("1/1/2000 01:00")
         expected = datetime(year=2000, month=1, day=1, hour=1, minute=1, second=0)
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
     def test_just_time(self):
         actual = scripts.parse_datestring("01:00:00")
         now = datetime.now()
-        self.assertEquals(actual.year, now.year)
-        self.assertEquals(actual.month, now.month)
-        self.assertEquals(actual.day, now.day)
+        self.assertEqual(actual.year, now.year)
+        self.assertEqual(actual.month, now.month)
+        self.assertEqual(actual.day, now.day)
 
     def test_invalid_date(self):
         from argparse import ArgumentTypeError
@@ -80,7 +80,7 @@ class DeltaParserTestCase(unittest.TestCase):
                                           ("-10", timedelta(seconds=10))])
     def test_parse_deltastring(self, case):
         actual, expected = scripts.parse_deltastring(case[0]), case[1]
-        self.assertEquals(actual, expected)
+        self.assertEqual(actual, expected)
 
     def test_invalid_delta(self):
         from argparse import ArgumentTypeError
@@ -120,7 +120,7 @@ class LogCollectorTestCase(unittest.TestCase):
 
     def test_run_collects_a_file_with_a_bad_st_size(self):
         fd, src = mkstemp()
-        write(fd, '\x00' * 4)
+        write(fd, b'\x00' * 4)
         close(fd)
 
         workaround_issue_10760 = logs_collector.workaround_issue_10760
@@ -140,8 +140,8 @@ class LogCollectorTestCase(unittest.TestCase):
     def test_command_env(self):
         out1 = collectables.Command('env')._execute().get_stdout()
         out2 = collectables.Command('env', env={'foo': 'bar'})._execute().get_stdout()
-        self.assertTrue('foo=bar' not in out1)
-        self.assertTrue('foo=bar' in out2)
+        self.assertTrue(b'foo=bar' not in out1)
+        self.assertTrue(b'foo=bar' in out2)
 
     def test_diretory_collector_timeout(self):
         def sleep(*args, **kwargs):
@@ -176,43 +176,47 @@ class LogCollectorTestCase(unittest.TestCase):
         utime(fname, (time(), 0))
 
     def test_collect_directory_with_timeframe(self):
-        from os import path, name
+        import os
         from glob import glob
         from shutil import rmtree
         from datetime import timedelta, datetime
-        if name == "nt":
+        if os.name == "nt":
             raise SkipTest("Windows")
         src = get_logs_directory()
+        if not os.access(src, os.W_OK):
+            raise SkipTest("system log dir inaccessible")
         dst = mkdtemp()
-        open(path.join(src, "infi_logs_collector_test.log"), "wb").write("test")
+        open(os.path.join(src, "infi_logs_collector_test.log"), "wb").write("test")
         self._create_old_file(src)
         item = collectables.Directory(src, "infi.*log$", timeframe_only=True)
         with patch("multiprocessing.Process", new=FakeProcess) as Process:
             item.collect(dst, datetime.now(), timedelta(seconds=5))
         self.addCleanup(rmtree, dst, ignore_errors=True)
-        src_logs = glob(path.join(src, 'infi*.log'))
-        dst = path.join(dst, "files", src.strip('/').replace('C:', ''))
-        dst_logs = glob(path.join(dst, 'infi*.log'))
+        src_logs = glob(os.path.join(src, 'infi*.log'))
+        dst = os.path.join(dst, "files", src.strip('/').replace('C:', ''))
+        dst_logs = glob(os.path.join(dst, 'infi*.log'))
         self.assertLess(len(dst_logs), len(src_logs))
         self.assertGreater(len(dst_logs), 0)
 
     def test_collect_directory_without_timeframe(self):
-        from os import path, name
+        import os
         from glob import glob
         from shutil import rmtree
         from datetime import timedelta, datetime
-        if name == "nt":
+        if os.name == "nt":
             raise SkipTest("Windows")
         src = get_logs_directory()
+        if not os.access(src, os.W_OK):
+            raise SkipTest("system log dir inaccessible")
         item = collectables.Directory(src, "infi.*log$", timeframe_only=False)
         dst = mkdtemp()
         with patch("multiprocessing.Process", new=FakeProcess) as Process:
             item.collect(dst, datetime.now(), timedelta(seconds=2))
         self.addCleanup(rmtree, dst, ignore_errors=True)
-        src_logs = glob(path.join(src, 'infi*.log'))
-        dst = path.join(dst, "files", src.strip('/').replace('C:', ''))
-        dst_logs = glob(path.join(dst, 'infi*.log'))
-        self.assertEquals(len(dst_logs), len(src_logs))
+        src_logs = glob(os.path.join(src, 'infi*.log'))
+        dst = os.path.join(dst, "files", src.strip('/').replace('C:', ''))
+        dst_logs = glob(os.path.join(dst, 'infi*.log'))
+        self.assertEqual(len(dst_logs), len(src_logs))
         self.assertGreater(len(dst_logs), 0)
 
     def test_collect_and_store_output_in_a_different_location__directory(self):
@@ -221,7 +225,7 @@ class LogCollectorTestCase(unittest.TestCase):
         before = listdir(dst)
         logs_collector.run("test", get_generic_os_items(), datetime.now(), None, dst)
         after = listdir(dst)
-        self.assertNotEquals(before, after)
+        self.assertNotEqual(before, after)
 
     def test_collect_and_store_output_in_a_different_location__filepath(self):
         from infi.logs_collector.items import get_generic_os_items
@@ -229,8 +233,8 @@ class LogCollectorTestCase(unittest.TestCase):
         before = listdir(dst)
         logs_collector.run("test", get_generic_os_items(), datetime.now(), None, path.join(dst, 'foo'))
         after = listdir(dst)
-        self.assertNotEquals(before, after)
-        self.assertEquals(after, ['foo'])
+        self.assertNotEqual(before, after)
+        self.assertEqual(after, ['foo'])
 
     def test_collect_eventlog(self):
         from datetime import datetime
@@ -238,27 +242,27 @@ class LogCollectorTestCase(unittest.TestCase):
         from infi.logs_collector.collectables.windows import Windows_Event_Logs
         wev = Windows_Event_Logs()
         with patch("multiprocessing.Process", new=FakeProcess) as Process:
-            wev.collect(dst, datetime.now(), datetime.now()-datetime(2009, 01, 01))
+            wev.collect(dst, datetime.now(), datetime.now()-datetime(2009, 1, 1))
         self.assertTrue(path.exists(path.join(dst, "event_logs", "Application.json")))
         self.assertTrue(path.exists(path.join(dst, "event_logs", "System.json")))
 
     @unittest.parameters.iterate("result", ['y', 'Y', 'yes'])
     def test_interactive__user_wants_to_collect(self, result):
-        with patch("__builtin__.raw_input"):
-            raw_input.return_value = result
+        with patch("six.moves.input") as input_mock:
+            input_mock.return_value = result
             self.assertTrue(user_wants_to_collect(None))
 
     @unittest.parameters.iterate("result", ['n', 'N', 'foo'])
     def test_interactive__user_does_not_want_to_collect(self, result):
-        with patch("__builtin__.raw_input"):
-            raw_input.return_value = result
+        with patch("six.moves.input") as input_mock:
+            input_mock.return_value = result
             self.assertFalse(user_wants_to_collect(None))
 
     def test_logging_handlers(self):
         import logging
         before = list(logging.root.handlers)
         result, archive_path = logs_collector.run("test", [], datetime.now(), None)
-        self.assertEquals(before, logging.root.handlers)
+        self.assertEqual(before, logging.root.handlers)
 
 
 class RealCollectablesTestCase(unittest.TestCase):

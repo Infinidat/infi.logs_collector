@@ -13,7 +13,7 @@ DATE_FORMATS = [
                 "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M"]
 
 DELTA_KEYWORD_ARGUMENTS = dict(w="weeks", d="days", h="hours", m="minutes", s="seconds")
-DELTA_KEYWORD_ARGUMENTS.update({key.upper():value for key, value in DELTA_KEYWORD_ARGUMENTS.iteritems()})
+DELTA_KEYWORD_ARGUMENTS.update({key.upper(): value for key, value in DELTA_KEYWORD_ARGUMENTS.items()})
 
 
 def fill_in_missing_date(datetime_object):
@@ -74,7 +74,7 @@ def parse_datestring(datestring):
     for format in DATE_FORMATS:
         try:
             return datetime.strptime(datestring, format)
-        except (ValueError, TypeError), msg:
+        except (ValueError, TypeError) as msg:
             pass
     raise ArgumentTypeError("Invalid datetime string: {!r}".format(datestring))
 
@@ -85,7 +85,7 @@ def parse_deltastring(string):
         keyword_argument = DELTA_KEYWORD_ARGUMENTS.get(string[-1] if string else "", "seconds")
         stripped_string = string.strip(''.join(DELTA_KEYWORD_ARGUMENTS.keys()))
         return timedelta(**{keyword_argument: abs(int(stripped_string))})
-    except Exception, error:
+    except Exception as error:
         raise ArgumentTypeError(error)
 
 def get_default_timestamp():

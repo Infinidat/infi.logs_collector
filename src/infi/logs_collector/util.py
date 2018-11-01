@@ -15,7 +15,7 @@ def get_logs_directory():
 def get_timestamp(seconds=False):
     return time.strftime(STRFTIME_LONG if seconds else STRFTIME_SHORT)
 
-def get_platform_name(): # pragma: no cover
+def get_platform_name():  # pragma: no cover
     from platform import system
     name = system().lower().replace('-', '_')
     return name
@@ -26,5 +26,5 @@ def init_colors():
     # see http://code.google.com/p/colorama/issues/detail?id=16
     # colors don't work on Cygwin if we call init
     # TODO delete this function when colorama is fixed
-    if not environ.has_key('TERM'): # this is how we recognize real Windows (init should only be called there)
+    if 'TERM' not in environ:  # this is how we recognize real Windows (init should only be called there)
         init()
