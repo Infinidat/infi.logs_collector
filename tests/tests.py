@@ -172,7 +172,7 @@ class LogCollectorTestCase(unittest.TestCase):
         from os import path, utime
         from time import time
         fname = path.join(dst_dir, "infi_logs_collector_test_old.log")
-        open(fname, "wb").write("test")
+        open(fname, "w").write("test")
         utime(fname, (time(), 0))
 
     def test_collect_directory_with_timeframe(self):
@@ -186,7 +186,7 @@ class LogCollectorTestCase(unittest.TestCase):
         if not os.access(src, os.W_OK):
             raise SkipTest("system log dir inaccessible")
         dst = mkdtemp()
-        open(os.path.join(src, "infi_logs_collector_test.log"), "wb").write("test")
+        open(os.path.join(src, "infi_logs_collector_test.log"), "w").write("test")
         self._create_old_file(src)
         item = collectables.Directory(src, "infi.*log$", timeframe_only=True)
         with patch("multiprocessing.Process", new=FakeProcess) as Process:
