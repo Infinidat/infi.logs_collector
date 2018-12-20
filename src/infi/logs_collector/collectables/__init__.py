@@ -76,7 +76,7 @@ class Directory(Item):
             return False
         try:
             last_modified_time = datetime.fromtimestamp(stat(filepath).st_mtime)
-        except IOError, error:
+        except IOError as error:
             logger.debug("stat on filepath {!r} failed: {}".format(filepath, error))
             return False
         return last_modified_time >= (timestamp-delta) and last_modified_time <= (timestamp+delta)
@@ -181,7 +181,7 @@ def find_executable(executable_name):
     logger.debug("Looking for executable {}".format(executable_name))
     if name == 'nt':
         executable_name += '.exe'
-    possible_locations = environ['PATH'].split(pathsep) if environ.has_key('PATH') else []
+    possible_locations = environ['PATH'].split(pathsep) if 'PATH' in environ else []
     possible_locations.insert(0, path.dirname(argv[0]))
     if name == 'nt':
         possible_locations.append(path.join(r"C:", "Windows", "System32"))
@@ -239,9 +239,9 @@ class Command(Item):
             return FakeResult
         try:
             cmd.wait(self.wait_time_in_seconds)
-        except OSError, error:
+        except OSError as error:
             logger.exception("Command did not run")
-        except CommandTimeout, error:
+        except CommandTimeout as error:
             logger.exception("Command did not finish in {} seconds, killing it".format(self.wait_time_in_seconds))
             cmd.kill()
             if not cmd.is_finished():
@@ -299,7 +299,7 @@ class Script(Item):
         import os, sys
         fd, path = mkstemp(suffix='.py')
         os.close(fd)
-        with open(path, 'wb') as f:
+        with open(path, 'w') as f:
             f.write('import sys\nsys.path[0:0] = [\n')
             for entry in sys.path:
                 f.write('\t%r,\n' % entry)

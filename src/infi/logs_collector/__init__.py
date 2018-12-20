@@ -123,7 +123,7 @@ def workaround_issue_10760(srcdir):
                     actual += bytes_read
             if actual < expected:
                 with open(filepath, 'ab') as fd:
-                    fd.write('\x00' * (expected-actual))
+                    fd.write(b'\x00' * (expected-actual))
 
 
 def add_directory(archive, srcdir):
@@ -136,7 +136,8 @@ def add_directory(archive, srcdir):
 
 
 def user_wants_to_collect(item):
-    return raw_input('Do you want to collect {} [y/N]? '.format(item)).lower() in ('y', 'yes')
+    import six
+    return six.moves.input('Do you want to collect {} [y/N]? '.format(item)).lower() in ('y', 'yes')
 
 
 def collect(item, tempdir, timestamp, delta, silent, interactive=False):
