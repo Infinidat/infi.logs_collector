@@ -262,12 +262,12 @@ class Command(Item):
         kwargs = dict(prefix=self.prefix or executable_name, pid=pid, timestamp=timestamp)
         output_filename = output_format.format(**kwargs)
         with open(join(targetdir, output_filename), 'wb') as fd:
-            fd.write(b"\n===%s===:\n%s" % (b"command", (' '.join([executable_name] + self.commandline_arguments)).encode('utf-8')))
-            for output_type in [b'returncode', b'stdout', b'stderr']:
-                output_value = getattr(cmd, "get_%s" % (output_type.decode('utf-8')))()
+            fd.write(b"\n===%s===:\n%s" % (b"command", (' '.join([executable_name] + self.commandline_arguments)).encode()))
+            for output_type in ['returncode', 'stdout', 'stderr']:
+                output_value = getattr(cmd, "get_{}".format(output_type))()
                 if isinstance(output_value, int):
-                    output_value = str(output_value).encode('utf-8')
-                fd.write(b"\n===%s===:\n%s" % (output_type, output_value))
+                    output_value = str(output_value).encode()
+                fd.write(b"\n===%s===:\n%s" % (output_type.encode(), output_value))
 
     def collect(self, targetdir, timestamp, delta):
         cmd = self._execute()
