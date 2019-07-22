@@ -261,11 +261,13 @@ class Command(Item):
         output_format = "{prefix}.{timestamp}.{pid}.txt"
         kwargs = dict(prefix=self.prefix or executable_name, pid=pid, timestamp=timestamp)
         output_filename = output_format.format(**kwargs)
-        with open(join(targetdir, output_filename), 'w') as fd:
-            fd.write("\n==={}===:\n{}".format("command", ' '.join([executable_name] + self.commandline_arguments)))
-            for output_type in ['returncode', 'stdout', 'stderr']:
-                output_value = getattr(cmd, "get_{}".format(output_type))()
-                fd.write("\n==={}===:\n{}".format(output_type, output_value))
+        with open(join(targetdir, output_filename), 'wb') as fd:
+            fd.write(b"\n===%s===:\n%s" % (b"command", (' '.join([executable_name] + self.commandline_arguments)).encode('utf-8')))
+            for output_type in [b'returncode', b'stdout', b'stderr']:
+                output_value = getattr(cmd, "get_%s" % (output_type.decode('utf-8')))()
+                if isinstance(output_value, int):
+                    output_value = str(output_value).encode('utf-8')
+                fd.write(b"\n===%s===:\n%s" % (output_type, output_value))
 
     def collect(self, targetdir, timestamp, delta):
         cmd = self._execute()
