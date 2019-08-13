@@ -265,7 +265,7 @@ class Command(Item):
             fd.write(b"\n===%s===:\n%s" % (b"command", (' '.join([executable_name] + self.commandline_arguments)).encode()))
             for output_type in ['returncode', 'stdout', 'stderr']:
                 output_value = getattr(cmd, "get_{}".format(output_type))()
-                if isinstance(output_value, int):
+                if not isinstance(output_value, bytes):
                     output_value = str(output_value).encode()
                 fd.write(b"\n===%s===:\n%s" % (output_type.encode(), output_value))
 
