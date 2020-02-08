@@ -1,4 +1,4 @@
-from infi.pyutils.decorators import wraps
+from functools import wraps
 
 DATE_FORMATS = [
                 "%d/%m/%y", "%d/%m/%Y", "%d-%m-%y", "%d-%m-%Y",

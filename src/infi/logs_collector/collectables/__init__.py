@@ -1,4 +1,4 @@
-from infi.pyutils.decorators import wraps
+from functools import wraps
 from logging import getLogger
 from datetime import datetime
 from re import match

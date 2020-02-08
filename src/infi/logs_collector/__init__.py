@@ -1,6 +1,6 @@
 from __future__ import print_function
 from logging import getLogger
-from infi.pyutils.contexts import contextmanager
+from contextlib import contextmanager
 from infi.traceback import traceback_decorator
 from .util import LOGGING_FORMATTER_KWARGS, STRFTIME_SHORT, get_timestamp
 
