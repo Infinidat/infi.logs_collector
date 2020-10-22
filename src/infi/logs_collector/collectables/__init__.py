@@ -160,6 +160,8 @@ class Directory(Item):
         func = make_blocking(self.collect_process, timeout=self.timeout_in_seconds, gevent_friendly=can_use_gevent_rpc())
         try:
             func(**kwargs)
+        except AssertionError:  # the blocking call failed, call the process without it
+            self.collect_process(**kwargs)
         except Timeout:
             msg = "Did not finish collecting {!r} within the {} seconds timeout_in_seconds"
             logger.error(msg.format(self, self.timeout_in_seconds))
