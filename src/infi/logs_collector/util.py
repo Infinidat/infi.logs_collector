@@ -28,3 +28,22 @@ def init_colors():
     # TODO delete this function when colorama is fixed
     if 'TERM' not in environ:  # this is how we recognize real Windows (init should only be called there)
         init()
+
+
+def make_blocking(func, args=(), kwargs=None, timeout=1):
+    import signal
+
+    kwargs = kwargs or {}
+
+    def handler(signum, frame):
+        raise TimeoutError
+
+    # Set the timeout handler
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout)
+    try:
+        result = func(*args, **kwargs)
+    finally:
+        signal.alarm(0)
+
+    return result
