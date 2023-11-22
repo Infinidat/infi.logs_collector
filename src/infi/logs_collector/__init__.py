@@ -1,7 +1,6 @@
 from __future__ import print_function
 from logging import getLogger
 from contextlib import contextmanager
-from infi.traceback import traceback_decorator
 from .util import LOGGING_FORMATTER_KWARGS, STRFTIME_SHORT, get_timestamp
 
 logger = getLogger(__name__)
@@ -165,7 +164,6 @@ def collect(item, tempdir, timestamp, delta, silent, interactive=False):
         return False
 
 
-@traceback_decorator
 def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, parent_dir_name="logs", silent=False, interactive=False):
     """ collects log items and creates an archive with all collected items.
     items is a list of instances of 'Item' subclasses (see the collectables submodule).

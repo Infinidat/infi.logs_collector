@@ -1,4 +1,3 @@
-from functools import wraps
 from logging import getLogger
 from datetime import datetime
 from re import match
@@ -145,7 +144,7 @@ class Directory(Item):
 
     def collect(self, targetdir, timestamp, delta):
         from logging import root
-        from infi.blocking import make_blocking, can_use_gevent_rpc, Timeout
+        from infi.logs_collector.util import make_blocking
 
         # We want to copy the files in a child process, so in case the filesystem is stuck, we won't get stuck too
         kwargs = dict(dirname=self.dirname, regex_basename=self.regex_basename,
@@ -157,15 +156,12 @@ class Directory(Item):
         except ValueError:
             logfile_path = None
 
-        func = make_blocking(self.collect_process, timeout=self.timeout_in_seconds, gevent_friendly=can_use_gevent_rpc())
         try:
-            func(**kwargs)
-        except AssertionError:  # the blocking call failed, call the process without it
-            self.collect_process(**kwargs)
-        except Timeout:
+            make_blocking(self.collect_process, kwargs=kwargs, timeout=self.timeout_in_seconds)
+        except TimeoutError:
             msg = "Did not finish collecting {!r} within the {} seconds timeout_in_seconds"
             logger.error(msg.format(self, self.timeout_in_seconds))
-            raise TimeoutError()
+            raise
 
 
 class File(Directory):
