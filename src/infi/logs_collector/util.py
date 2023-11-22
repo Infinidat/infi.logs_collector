@@ -28,3 +28,17 @@ def init_colors():
     # TODO delete this function when colorama is fixed
     if 'TERM' not in environ:  # this is how we recognize real Windows (init should only be called there)
         init()
+
+def make_blocking(func, args=(), kwargs=None, timeout=1):
+    import multiprocessing as mp
+
+    proc = mp.Process(target=func, args=args, kwargs=kwargs or {})
+    proc.start()
+    try:
+        proc.join(timeout)
+        if proc.is_alive():
+            # Raise a TimeoutError
+            raise TimeoutError(f"Execution of function {func.__name__} timed out ({timeout} seconds)")
+    finally:
+        # Terminate the process
+        proc.terminate()

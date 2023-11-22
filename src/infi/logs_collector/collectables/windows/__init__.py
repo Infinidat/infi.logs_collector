@@ -81,7 +81,8 @@ class Windows_Event_Logs(Item):
                 fd.write(json.dumps(events))
 
     def collect(self, targetdir, timestamp, delta):
-        from infi.blocking import make_blocking, can_use_gevent_rpc, Timeout
+        from infi.logs_collector.util import make_blocking
+
         from logging import root
         from infi.logs_collector.collectables import TimeoutError
         # We want to copy the files in a child process, so in case the filesystem is stuck, we won't get stuck too
@@ -92,13 +93,12 @@ class Windows_Event_Logs(Item):
         except ValueError:
             logfile_path = None
 
-        func = make_blocking(self.collect_process, timeout=self.timeout_in_seconds, gevent_friendly=can_use_gevent_rpc())
         try:
-            func(**kwargs)
-        except Timeout:
+            make_blocking(self.collect_process, kwargs=kwargs, timeout=self.timeout_in_seconds)
+        except TimeoutError:
             msg = "Did not finish collecting {!r} within the {} seconds timeout_in_seconds"
             logger.error(msg.format(self, self.timeout_in_seconds))
-            raise TimeoutError()
+            raise
 
 def get_all():
     msinfo_path = MSINFO32_PATH_2 if path.exists(MSINFO32_PATH_2) else MSINFO32_PATH
