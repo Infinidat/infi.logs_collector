@@ -28,3 +28,20 @@ def init_colors():
     # TODO delete this function when colorama is fixed
     if 'TERM' not in environ:  # this is how we recognize real Windows (init should only be called there)
         init()
+
+
+def make_blocking(func, args=(), kwargs=None, timeout=1):
+    import concurrent.futures
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(func, *args, **kwargs or {})
+
+        # Wait for the function to complete or timeout
+        try:
+            result = future.result(timeout=timeout)
+            return result
+        except concurrent.futures.TimeoutError:
+            # If the function exceeds the timeout, cancel the task
+            future.cancel()
+            raise TimeoutError(f"Execution of function {func.__name__} timed out ({timeout} seconds)")
+        

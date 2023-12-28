@@ -38,6 +38,9 @@ class FakeProcess(object):
 
     def is_alive(self):
         return False
+    
+    def terminate(self):
+        pass
 
 class TimestampParserTestCase(unittest.TestCase):
     def test_fixed_date_without_time(self):
