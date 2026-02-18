@@ -1,7 +1,7 @@
 from __future__ import print_function
 from logging import getLogger
 from contextlib import contextmanager
-from .util import LOGGING_FORMATTER_KWARGS, STRFTIME_SHORT, get_timestamp
+from .util import LOGGING_FORMATTER_KWARGS, STRFTIME_SHORT, get_timestamp, init_colors
 
 logger = getLogger(__name__)
 
@@ -180,6 +180,7 @@ def run(prefix, items, timestamp, delta, output_path=None, creation_dir=None, pa
     parent_dir_name is the name of the parent directory that will be created inside the output archive.
     silent specified whether or not to print the process to stdout. pass True to silence the prints. The process
     will still be logged to a file under 'collection-logs' in the creation directory. """
+    init_colors()
     end_result = True
     with create_temporary_directory_for_log_collection(creation_dir, parent_dir_name, timestamp) as (tempdir, runtime_dir):
         with create_logging_handler_for_collection(runtime_dir, prefix) as handler:
